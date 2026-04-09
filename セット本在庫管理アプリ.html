@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>セット本在庫管理</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, 'Hiragino Sans', sans-serif; background: #f0f2f5; color: #333; -webkit-tap-highlight-color: transparent; }
+
+/* Header */
+.header { background: #2c3e50; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 17px; font-weight: 700; }
+.header-actions { display: flex; gap: 8px; }
+.header-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+
+/* Tabs */
+.tabs { display: flex; background: white; border-bottom: 2px solid #e8e8e8; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { padding: 11px 16px; cursor: pointer; white-space: nowrap; font-size: 13px; border-bottom: 3px solid transparent; margin-bottom: -2px; color: #888; flex-shrink: 0; }
+.tab.active { border-bottom-color: #2c3e50; color: #2c3e50; font-weight: 700; }
+
+/* Search */
+.search-wrap { padding: 8px 10px; background: white; border-bottom: 1px solid #e8e8e8; }
+.search-wrap input { width: 100%; padding: 8px 14px; border: 1.5px solid #ddd; border-radius: 20px; font-size: 14px; outline: none; background: #f8f8f8; }
+.search-wrap input:focus { border-color: #2c3e50; background: white; }
+
+/* Stats */
+.stats-bar { padding: 7px 12px; background: #ecf0f1; font-size: 12px; color: #666; display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-item { display: flex; align-items: center; gap: 4px; }
+.stat-dot { width: 8px; height: 8px; border-radius: 50%; }
+.stat-dot.red { background: #e74c3c; }
+.stat-dot.green { background: #27ae60; }
+
+/* List */
+.series-list { padding: 8px; padding-bottom: 80px; }
+
+/* Card */
+.series-card { background: white; border-radius: 10px; margin-bottom: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.series-header { padding: 10px 12px; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; gap: 8px; }
+.series-title { font-size: 15px; font-weight: 700; color: #1a2530; line-height: 1.3; }
+.series-meta { font-size: 11px; color: #999; margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+.meta-tag { background: #f0f2f5; padding: 1px 6px; border-radius: 4px; }
+.series-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.vol-summary { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.vol-summary.ok { color: #27ae60; }
+.vol-summary.ng { color: #e74c3c; }
+.expand-arrow { font-size: 12px; color: #bbb; }
+
+/* Card body */
+.series-body { padding: 4px 12px 12px; border-top: 1px solid #f5f5f5; }
+.progress-wrap { margin: 6px 0 8px; }
+.progress-bar { height: 5px; background: #ecf0f1; border-radius: 3px; }
+.progress-fill { height: 100%; background: #27ae60; border-radius: 3px; transition: width 0.4s; }
+.progress-label { font-size: 10px; color: #aaa; margin-top: 3px; text-align: right; }
+
+/* Cover image */
+.cover-wrap { flex-shrink: 0; width: 48px; height: 64px; border-radius: 6px; overflow: hidden; background: #e8ecf0; cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center; border: 1.5px solid #dde; }
+.cover-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover-placeholder { font-size: 20px; color: #bbb; }
+.cover-add-hint { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.45); color: white; font-size: 8px; text-align: center; padding: 2px 0; }
+.cover-wrap:active { opacity: 0.75; }
+
+/* Volume grid */
+.vol-grid { display: flex; flex-wrap: wrap; gap: 4px; }
+.vol-cell {
+  min-width: 30px; height: 30px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: transform 0.1s; user-select: none; -webkit-user-select: none;
+  position: relative;
+}
+.vol-cell:active { transform: scale(0.88); }
+.vol-cell.owned { background: #d5f5e3; color: #1e8449; border: 1.5px solid #a9dfbf; }
+.vol-cell.missing { background: #fdecea; color: #c0392b; border: 1.5px solid #f5b7b1; }
+.vol-cell.dupe { background: #fef9e7; color: #b7950b; border: 1.5px solid #f9e79f; }
+.vol-count-badge { position: absolute; top: -4px; right: -4px; background: #e67e22; color: white; font-size: 9px; width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+/* Named vol chips */
+.named-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.named-chip { padding: 4px 8px; border-radius: 12px; font-size: 11px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.named-chip.owned { background: #d5f5e3; color: #1e8449; border: 1px solid #a9dfbf; }
+.named-chip.missing { background: #fdecea; color: #c0392b; border: 1px solid #f5b7b1; }
+
+/* Missing note */
+.missing-note { font-size: 11px; color: #e74c3c; background: #fff5f5; border-radius: 6px; padding: 4px 8px; margin-bottom: 6px; line-height: 1.5; }
+
+/* Modal */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+.overlay.show { display: flex; }
+.modal { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 20px 20px 28px; }
+.modal-hdg { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 12px; color: #888; margin-bottom: 16px; }
+.count-row { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 12px 0 20px; }
+.cnt-btn { width: 52px; height: 52px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.cnt-btn.minus { background: #fdecea; color: #e74c3c; }
+.cnt-btn.plus { background: #d5f5e3; color: #27ae60; }
+.cnt-val { font-size: 40px; font-weight: 800; min-width: 64px; text-align: center; color: #2c3e50; }
+.modal-btns { display: flex; gap: 8px; }
+.modal-btn { flex: 1; padding: 13px; border: none; border-radius: 10px; font-size: 15px; cursor: pointer; font-weight: 600; }
+.modal-btn.cancel { background: #ecf0f1; color: #555; }
+.modal-btn.confirm { background: #2c3e50; color: white; }
+
+/* FAB */
+.fab { position: fixed; bottom: 20px; right: 16px; background: #2c3e50; color: white; border: none; border-radius: 50px; padding: 12px 18px; font-size: 14px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.3); z-index: 50; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+
+/* Add series modal */
+.add-modal { background: white; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px; padding: 20px; max-height: 85vh; overflow-y: auto; }
+.add-modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.form-row { margin-bottom: 12px; }
+.form-row label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+.form-row input, .form-row select, .form-row textarea { width: 100%; padding: 9px 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; font-family: inherit; }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: #2c3e50; }
+.form-row textarea { height: 60px; resize: vertical; }
+.form-note { font-size: 11px; color: #aaa; margin-top: 3px; }
+
+/* Legend */
+.legend { display: flex; gap: 10px; padding: 0 0 8px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #666; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+.empty { text-align: center; padding: 48px 16px; color: #bbb; }
+.empty-icon { font-size: 48px; margin-bottom: 8px; }
+
+/* Toast */
+.toast { position: fixed; bottom: 82px; left: 50%; transform: translateX(-50%) translateY(8px); background: rgba(30,40,55,0.93); color: white; padding: 8px 20px; border-radius: 24px; font-size: 13px; font-weight: 600; z-index: 400; pointer-events: none; opacity: 0; transition: opacity 0.15s, transform 0.15s; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Edit button */
+.edit-btn { background: none; border: none; font-size: 15px; padding: 4px 6px; cursor: pointer; opacity: 0.35; flex-shrink: 0; border-radius: 5px; line-height: 1; }
+.edit-btn:active { opacity: 1; background: #ecf0f1; }
+
+/* Vol count bar */
+.vol-count-bar { display: flex; gap: 12px; font-size: 11px; font-weight: 600; padding: 2px 0 8px; align-items: center; flex-wrap: wrap; }
+.vol-count-bar .lp-hint { font-size: 10px; color: #ccc; font-weight: 400; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📚 セット本在庫管理</h1>
+  <div class="header-actions">
+    <button class="header-btn" onclick="exportCSV()">📤 出力</button>
+    <button class="header-btn" onclick="resetConfirm()">🔄 リセット</button>
+  </div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+<div class="search-wrap"><input type="text" id="search" placeholder="🔍 タイトル・作者で検索..." oninput="render()"></div>
+<div class="stats-bar" id="stats"></div>
+<div class="series-list" id="list"></div>
+
+<button class="fab" onclick="openAddModal()">＋ シリーズ追加</button>
+<div id="toast" class="toast"></div>
+<input type="file" id="cover-input" accept="image/*" style="display:none" onchange="onCoverSelected(event)">
+
+<!-- Volume edit overlay -->
+<div class="overlay" id="vol-overlay" onclick="closeOverlay(event)">
+  <div class="modal">
+    <div class="modal-hdg" id="m-title"></div>
+    <div class="modal-sub" id="m-sub"></div>
+    <div class="count-row">
+      <button class="cnt-btn minus" onclick="adjustModal(-1)">－</button>
+      <div class="cnt-val" id="m-count">0</div>
+      <button class="cnt-btn plus" onclick="adjustModal(1)">＋</button>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeOverlay()">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add series overlay -->
+<div class="overlay" id="add-overlay" onclick="closeAddOverlay(event)">
+  <div class="add-modal">
+    <h3>📖 シリーズ追加</h3>
+    <div class="form-row">
+      <label>タイトル *</label>
+      <input type="text" id="f-title" placeholder="例: 鬼滅の刃">
+    </div>
+    <div class="form-row">
+      <label>作者</label>
+      <input type="text" id="f-author" placeholder="例: 吾峠呼世晴">
+    </div>
+    <div class="form-row">
+      <label>出版社</label>
+      <input type="text" id="f-publisher">
+    </div>
+    <div class="form-row">
+      <label>ジャンル（タブ）</label>
+      <select id="f-genre"></select>
+    </div>
+    <div class="form-row">
+      <label>巻数</label>
+      <input type="number" id="f-total" placeholder="例: 23" min="1">
+    </div>
+    <div class="form-row">
+      <label>完結</label>
+      <select id="f-complete"><option value="">未設定</option><option value="1">完結</option><option value="0">連載中</option></select>
+    </div>
+    <div class="form-row">
+      <label>抜け巻（持っていない巻）</label>
+      <textarea id="f-missing" placeholder="例: 1~5,8,10~12&#10;範囲は「~」、複数は「,」で区切り"></textarea>
+      <div class="form-note">数字以外（タイトル名など）はカンマ区切りで入力可</div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeAddOverlay()">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveNewSeries()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit series overlay -->
+<div class="overlay" id="edit-overlay" onclick="closeEditOverlay(event)">
+  <div class="add-modal">
+    <h3>✏️ シリーズ編集</h3>
+    <input type="hidden" id="e-id">
+    <div class="form-row">
+      <label>タイトル *</label>
+      <input type="text" id="e-title">
+    </div>
+    <div class="form-row">
+      <label>作者</label>
+      <input type="text" id="e-author">
+    </div>
+    <div class="form-row">
+      <label>出版社</label>
+      <input type="text" id="e-publisher">
+    </div>
+    <div class="form-row">
+      <label>サブジャンル（雑誌名など）</label>
+      <input type="text" id="e-subgenre">
+    </div>
+    <div class="form-row">
+      <label>ジャンル（タブ）</label>
+      <select id="e-genre"></select>
+    </div>
+    <div class="form-row">
+      <label>全巻数（0=不明）</label>
+      <input type="number" id="e-total" min="0">
+    </div>
+    <div class="form-row">
+      <label>完結</label>
+      <select id="e-complete">
+        <option value="">未設定</option>
+        <option value="1">完結</option>
+        <option value="0">連載中</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>名前タイトルのリスト（カンマ区切り）</label>
+      <textarea id="e-named" placeholder="例: 上巻,下巻,特別編&#10;カンマ区切りで入力"></textarea>
+      <div class="form-note">数字以外の巻（上・下・サブタイトルなど）。変更しても既存在庫データは保持されます。</div>
+    </div>
+    <div class="modal-btns" style="margin-bottom:8px">
+      <button class="modal-btn cancel" onclick="closeEditOverlay()">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveEditSeries()">保存</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:0">
+      <button onclick="deleteCoverImage()" style="flex:1;padding:11px;border:1.5px solid #999;background:white;color:#666;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;">🖼 画像を削除</button>
+      <button onclick="deleteSeriesConfirm()" style="flex:1;padding:11px;border:1.5px solid #e74c3c;background:white;color:#e74c3c;border-radius:10px;font-size:13px;cursor:pointer;font-weight:600;">🗑 シリーズ削除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================================
+//  初期データ（CSVより）
+// =====================================================================
+const INITIAL_DATA = [
+  // ─── 少年 ───
+  {id:'s001',genre:'少年',title:'からくりサーカス',author:'藤田和日郎',publisher:'小学館',subGenre:'サンデー',total:43,complete:true,missingRaw:'1~35,38~42'},
+  {id:'s002',genre:'少年',title:'ウソツキ！ゴクオーくん',author:'吉もと誠',publisher:'小学館',subGenre:'コロコロ',total:25,complete:true,missingRaw:'22~25'},
+  {id:'s003',genre:'少年',title:'ドラえもん',author:'藤子・F・不二雄',publisher:'小学館',subGenre:'コロコロ',total:45,complete:true,missingRaw:'1~10,13~25,27~36,38~43'},
+  {id:'s004',genre:'少年',title:'ドラベース ドラえもん超野球',author:'ムギワラシンタロウ',publisher:'小学館',subGenre:'コロコロ',total:23,complete:true,missingRaw:'1,4,15'},
+  {id:'s005',genre:'少年',title:'怪盗ジョーカー',author:'福島直浩',publisher:'小学館',subGenre:'サンデー',total:26,complete:true,missingRaw:'24~26'},
+  {id:'s006',genre:'少年',title:'YAIBA',author:'青山剛昌',publisher:'小学館',subGenre:'サンデー',total:24,complete:true,missingRaw:''},
+  {id:'s007',genre:'少年',title:'名探偵コナン',author:'青山剛昌',publisher:'小学館',subGenre:'サンデー',total:0,complete:false,missingRaw:''},
+  {id:'s008',genre:'少年',title:'疾風伝説特攻の拓',author:'佐木飛朗斗',publisher:'講談社',subGenre:'マガジン',total:27,complete:true,missingRaw:''},
+  {id:'s009',genre:'少年',title:'進撃の巨人',author:'諫山創',publisher:'講談社',subGenre:'マガジン',total:34,complete:true,missingRaw:'23~'},
+  {id:'s010',genre:'少年',title:'ブラックジャック',author:'手塚治虫',publisher:'秋田書店',subGenre:'チャンピオン',total:25,complete:true,missingRaw:'4,14,16,17,19~24'},
+  {id:'s011',genre:'少年',title:'銀魂',author:'空知英明',publisher:'集英社',subGenre:'ジャンプ',total:77,complete:true,missingRaw:'58~'},
+  {id:'s012',genre:'少年',title:'銀魂（小説）',author:'空知英明',publisher:'集英社',subGenre:'ジャンプ',total:7,complete:false,missingRaw:'',namedMissing:['1','フォーエバー']},
+  {id:'s013',genre:'少年',title:'NARUTO',author:'岸本斉史',publisher:'集英社',subGenre:'ジャンプ',total:72,complete:true,missingRaw:'62,65,68,71~'},
+  {id:'s014',genre:'少年',title:'ジョジョリオン',author:'荒木飛呂彦',publisher:'集英社',subGenre:'ジャンプ',total:27,complete:true,missingRaw:'1~11,15~27'},
+  {id:'s015',genre:'少年',title:'トリコ',author:'島袋光年',publisher:'集英社',subGenre:'ジャンプ',total:43,complete:false,missingRaw:'41~'},
+  {id:'s016',genre:'少年',title:'Dr.スランプ',author:'鳥山明',publisher:'集英社',subGenre:'ジャンプ',total:18,complete:false,missingRaw:'2,4,10,15,16,18~'},
+  {id:'s017',genre:'少年',title:'ドラゴンボール',author:'鳥山明',publisher:'集英社',subGenre:'ジャンプ',total:42,complete:false,missingRaw:'1~3,5~19,21~28,30~35,38~'},
+  {id:'s018',genre:'少年',title:'ONEPIECE (1〜12巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:12,complete:false,missingRaw:''},
+  {id:'s019',genre:'少年',title:'ONEPIECE (13〜23巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:23,complete:false,missingRaw:'',volOffset:13},
+  {id:'s020',genre:'少年',title:'ONEPIECE (24〜32巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:32,complete:false,missingRaw:'',volOffset:24},
+  {id:'s021',genre:'少年',title:'ONEPIECE (33〜45巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:45,complete:false,missingRaw:'36~40',volOffset:33},
+  {id:'s022',genre:'少年',title:'ONEPIECE (46〜53巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:53,complete:false,missingRaw:'46~48,50~53',volOffset:46},
+  {id:'s023',genre:'少年',title:'ONEPIECE (81〜90巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:90,complete:false,missingRaw:'81~85,87',volOffset:81},
+  {id:'s024',genre:'少年',title:'ONEPIECE (91〜104巻)',author:'尾田栄一郎',publisher:'集英社',subGenre:'ジャンプ',total:104,complete:false,missingRaw:'93~96,98,99,101,102',volOffset:91},
+  {id:'s025',genre:'少年',title:'ハイキュー',author:'古館春一',publisher:'集英社',subGenre:'ジャンプ',total:10,complete:false,missingRaw:''},
+  {id:'s026',genre:'少年',title:'ザ☆ドラえもんズ',author:'藤子F藤尾',publisher:'小学館',subGenre:'コロコロ',total:6,complete:false,missingRaw:'4'},
+  {id:'s027',genre:'少年',title:'ボボボーボ・ボーボボ',author:'澤井啓夫',publisher:'集英社',subGenre:'ジャンプ',total:21,complete:true,missingRaw:'1~18,20,21'},
+  {id:'s028',genre:'少年',title:'1日外出録ハンチョウ',author:'',publisher:'講談社',subGenre:'ヤンマガ',total:0,complete:false,missingRaw:'15~'},
+  {id:'s029',genre:'少年',title:'キングダム',author:'原泰久',publisher:'集英社',subGenre:'ヤングジャンプ',total:0,complete:false,missingRaw:'50,57,61,62,63,65~'},
+  {id:'s030',genre:'少年',title:'にゃんこ大戦争',author:'萬屋不死身之介',publisher:'',subGenre:'コロコロ',total:15,complete:false,missingRaw:'3~5,7~'},
+  {id:'s031',genre:'少年',title:'ねこねこ日本史',author:'そにしけんじ',publisher:'実業之日本社',subGenre:'',total:15,complete:false,missingRaw:'1,4~'},
+  {id:'s032',genre:'少年',title:'HUNTER×HUNTER',author:'冨樫義博',publisher:'集英社',subGenre:'ジャンプ',total:38,complete:false,missingRaw:'1~4,8~13,15~18,21~32,34~'},
+  {id:'s033',genre:'少年',title:'WITCHWATCH',author:'篠原健太',publisher:'集英社',subGenre:'ジャンプ',total:0,complete:false,missingRaw:'13~'},
+  {id:'s034',genre:'少年',title:'ポケットモンスター',author:'穴久保幸作',publisher:'小学館',subGenre:'コロコロ',total:14,complete:true,missingRaw:'12~'},
+  {id:'s035',genre:'少年',title:'10DANCE',author:'井上佐藤',publisher:'講談社',subGenre:'ヤンマガ',total:7,complete:true,missingRaw:''},
+  {id:'s036',genre:'少年',title:'ブラックジャック（大判）',author:'手塚治虫',publisher:'秋田書店',subGenre:'チャンピオン',total:0,complete:false,missingRaw:'1,4,7,8,10~'},
+  {id:'s037',genre:'少年',title:'アイシールド21',author:'',publisher:'集英社',subGenre:'ジャンプ',total:37,complete:true,missingRaw:''},
+
+  // ─── 児童書 ───
+  {id:'j001',genre:'児童書',title:'10歳までに読みたいシャーロックホームズ',author:'',publisher:'学研',subGenre:'',total:5,complete:false,missingRaw:'1,2'},
+  {id:'j002',genre:'児童書',title:'10歳までに読みたい怪盗アルセーヌルパン',author:'',publisher:'学研',subGenre:'',total:5,complete:false,missingRaw:'',namedMissing:['あやしい','あらわれた']},
+  {id:'j003',genre:'児童書',title:'10歳までに読みたい日本名作（第一期）',author:'',publisher:'学研',subGenre:'',total:6,complete:false,missingRaw:'2,6'},
+  {id:'j004',genre:'児童書',title:'10歳までに読みたい世界名作（第一期）',author:'',publisher:'学研',subGenre:'',total:8,complete:false,missingRaw:'1,5,7,8'},
+  {id:'j005',genre:'児童書',title:'10歳までに読みたい世界名作（第二期）',author:'',publisher:'学研',subGenre:'',total:8,complete:false,missingRaw:'16'},
+  {id:'j006',genre:'児童書',title:'10歳までに読みたい日本名作（第二期）',author:'',publisher:'学研',subGenre:'',total:6,complete:false,missingRaw:''},
+  {id:'j007',genre:'児童書',title:'ISPYミッケ!',author:'',publisher:'小学館',subGenre:'',total:8,complete:false,missingRaw:'4'},
+  {id:'j008',genre:'児童書',title:'NEW世界の歴史',author:'',publisher:'学研',subGenre:'',total:14,complete:false,missingRaw:'2',namedMissing:['人物学習辞典','世界遺産学習辞典']},
+  {id:'j009',genre:'児童書',title:'NEW日本の歴史',author:'',publisher:'学研',subGenre:'',total:14,complete:false,missingRaw:'',namedMissing:['文化遺産学習事典']},
+  {id:'j010',genre:'児童書',title:'あらしのよるに',author:'',publisher:'講談社',subGenre:'',total:7,complete:false,missingRaw:'1,3~6'},
+  {id:'j011',genre:'児童書',title:'いみちぇん',author:'',publisher:'角川つばさ文庫',subGenre:'',total:19,complete:false,missingRaw:'13'},
+  {id:'j012',genre:'児童書',title:'エルマーのぼうけん',author:'',publisher:'福音館',subGenre:'',total:3,complete:false,missingRaw:'2'},
+  {id:'j013',genre:'児童書',title:'おしりたんてい',author:'',publisher:'ポプラ社',subGenre:'',total:10,complete:false,missingRaw:'9~'},
+  {id:'j014',genre:'児童書',title:'おもしろくてやくにたつ子どもの伝記',author:'',publisher:'ポプラ社',subGenre:'',total:20,complete:false,missingRaw:'1,3,4,9,10,12~16,18~'},
+  {id:'j015',genre:'児童書',title:'かいぞくぽけっと',author:'',publisher:'',subGenre:'',total:20,complete:false,missingRaw:'4,11,14'},
+  {id:'j016',genre:'児童書',title:'ぐりとぐら',author:'',publisher:'福音館書店',subGenre:'',total:7,complete:false,missingRaw:'',namedMissing:['のおおそうじ']},
+  {id:'j017',genre:'児童書',title:'グレッグのダメ日記',author:'',publisher:'ポプラ社',subGenre:'',total:21,complete:false,missingRaw:'4,7,11,12,15~'},
+  {id:'j018',genre:'児童書',title:'こまったさん',author:'',publisher:'あかね書房',subGenre:'',total:10,complete:false,missingRaw:''},
+  {id:'j019',genre:'児童書',title:'コミック版世界の伝記',author:'',publisher:'ポプラ社',subGenre:'',total:20,complete:false,missingRaw:'7,9,12,14,15,17,20'},
+  {id:'j020',genre:'児童書',title:'コミック版日本の歴史（ポプラ社）',author:'',publisher:'ポプラ社',subGenre:'',total:10,complete:false,missingRaw:'7,9'},
+  {id:'j021',genre:'児童書',title:'コミック版日本の歴史（全巻）',author:'',publisher:'ポプラ社',subGenre:'',total:53,complete:false,missingRaw:'12~20,24,26~35,37~41,43,44,46~51,53~'},
+  {id:'j022',genre:'児童書',title:'サバイバルシリーズ',author:'',publisher:'毎日新聞社',subGenre:'',total:89,complete:false,missingRaw:'14,16,24,41,46,56,61,65,67,72,73,75~'},
+  {id:'j023',genre:'児童書',title:'ぞくぞく村',author:'',publisher:'あかね書房',subGenre:'',total:19,complete:false,missingRaw:'3~5,7,10~12,15~18'},
+  {id:'j024',genre:'児童書',title:'ちびまる子ちゃん満点ゲットシリーズ',author:'',publisher:'集英社',subGenre:'',total:14,complete:false,missingRaw:'',namedMissing:['文法教室','表現力をつけることば教室2','語源教室','読めるとたのしい難読漢字教室']},
+  {id:'j025',genre:'児童書',title:'チャレンジミッケ!',author:'',publisher:'小学館',subGenre:'',total:12,complete:false,missingRaw:'3,10~'},
+  {id:'j026',genre:'児童書',title:'デルトラクエスト',author:'',publisher:'岩崎書店',subGenre:'',total:17,complete:false,missingRaw:''},
+  {id:'j027',genre:'児童書',title:'どっちが強い',author:'',publisher:'角川',subGenre:'',total:0,complete:false,missingRaw:'27,29,32,34~'},
+  {id:'j028',genre:'児童書',title:'ドラえもん科学ワールドⅠ',author:'',publisher:'小学館',subGenre:'',total:5,complete:false,missingRaw:'',namedMissing:['恐竜と失われた動物たち','光と音の不思議','からだと生命の不思議']},
+  {id:'j029',genre:'児童書',title:'ドラえもん科学ワールドⅡ',author:'',publisher:'小学館',subGenre:'',total:5,complete:false,missingRaw:'',namedMissing:['天気と気象の不思議']},
+  {id:'j030',genre:'児童書',title:'ドラえもん科学ワールドⅢ',author:'',publisher:'小学館',subGenre:'',total:5,complete:false,missingRaw:'',namedMissing:['昆虫の不思議','生物の源・海の不思議','生命進化と化石の不思議','電気の不思議']},
+  {id:'j031',genre:'児童書',title:'ドラえもん算数おもしろ攻略',author:'',publisher:'小学館',subGenre:'',total:17,complete:false,missingRaw:'',namedMissing:['すらすらわかる驚きの小学算数','分数の「かけ算・わり算」','算数辞典1~3','ともなって','図と絵で解ける','計算が早くできる','続文章題']},
+  {id:'j032',genre:'児童書',title:'ドラえもん社会ワールド',author:'',publisher:'小学館',subGenre:'',total:5,complete:false,missingRaw:'',namedMissing:['古代文明のひみつ','憲法って何だろう','政治のしくみ','日本と国際社会']},
+  {id:'j033',genre:'児童書',title:'ドラえもん社会科おもしろ攻略',author:'',publisher:'小学館',subGenre:'',total:3,complete:false,missingRaw:'1'},
+  {id:'j034',genre:'児童書',title:'ドラえもん探検シリーズ',author:'',publisher:'小学館',subGenre:'',total:15,complete:false,missingRaw:'1,2,5~8,10~12,14'},
+  {id:'j035',genre:'児童書',title:'なんでも魔女商会',author:'',publisher:'岩崎書店',subGenre:'',total:29,complete:false,missingRaw:'1,8,9,10,15'},
+  {id:'j036',genre:'児童書',title:'ハリーポッター',author:'',publisher:'静山社',subGenre:'',total:11,complete:false,missingRaw:'',namedMissing:['賢','秘','ア','炎上','謎下']},
+  {id:'j037',genre:'児童書',title:'ホーキング博士',author:'',publisher:'岩崎書店',subGenre:'',total:7,complete:false,missingRaw:'',namedMissing:['2-1','2-2','2-3','扉']},
+  {id:'j038',genre:'児童書',title:'ほねほねザウルス',author:'',publisher:'岩崎書店',subGenre:'',total:29,complete:false,missingRaw:''},
+  {id:'j039',genre:'児童書',title:'ミルキー杉山のあなたも名探偵',author:'',publisher:'偕成社',subGenre:'',total:28,complete:false,missingRaw:'',namedMissing:['あいがあれば','あいことばは','あしたからは','あめあがりの','いつのまにか','うえをむいて','おかげさまで','おくれてきた','かえってきた','こんどこそは','しあわせなら','そんなわけで','とっておきの','どんなときも','なんだかんだ','にちようびは','ひるもよるも','ふりかえれば','まちがいなく','まってました','もしかしたら','よーいどんで','事件だよ！全員集合','わんわん','わんわんおかわり']},
+  {id:'j040',genre:'児童書',title:'ようかいとりものちょう',author:'',publisher:'',subGenre:'',total:19,complete:false,missingRaw:'4,14~'},
+  {id:'j041',genre:'児童書',title:'ルドルフとイッパイアッテナ',author:'',publisher:'講談社',subGenre:'',total:4,complete:false,missingRaw:'',namedMissing:['スノーホワイト']},
+  {id:'j042',genre:'児童書',title:'ルルとララ',author:'',publisher:'岩崎書店',subGenre:'',total:28,complete:false,missingRaw:'',namedMissing:['カップケーキ','きらきらゼリー','しあわせマシュマロ','チョコレート','カスタード・プリン','わくわくクレープ','ふんわりムース','ホットケーキ','コットンのマカロン','ハロウィン','おまじないクッキー','ガトーショコラ','ティラミス','かみかみグミ','別冊２']},
+  {id:'j043',genre:'児童書',title:'わかったさん',author:'',publisher:'あかね書房',subGenre:'',total:10,complete:false,missingRaw:'',namedMissing:['マドレーヌ']},
+  {id:'j044',genre:'児童書',title:'黄）集英社世界の伝記NEXT',author:'',publisher:'集英社',subGenre:'',total:10,complete:false,missingRaw:'',namedMissing:['ナイチンゲール','アンネ・フランク','ヘレン・ケラー','マザー・テレサ','エジソン','クララ・シューマン','マリー・キュリー','マリー・アントワネット']},
+  {id:'j045',genre:'児童書',title:'科学探偵VS',author:'',publisher:'朝日新聞社',subGenre:'',total:16,complete:false,missingRaw:'6,8~'},
+  {id:'j046',genre:'児童書',title:'角川まんが学習シリーズ恐竜キングダム',author:'',publisher:'角川',subGenre:'',total:12,complete:false,missingRaw:'2,10~'},
+  {id:'j047',genre:'児童書',title:'角川まんが学習シリーズ世界の歴史',author:'',publisher:'角川',subGenre:'',total:22,complete:false,missingRaw:'1~5,7~',namedMissing:['別1','別2']},
+  {id:'j048',genre:'児童書',title:'角川まんが学習シリーズ日本の歴史',author:'',publisher:'角川',subGenre:'',total:20,complete:false,missingRaw:'16',namedMissing:['別4']},
+  {id:'j049',genre:'児童書',title:'学研まんがひみつシリーズ',author:'',publisher:'学研',subGenre:'',total:40,complete:false,missingRaw:'',namedMissing:['1年366日','いのち','カブトムシ・クワガタムシ','ヒトの進化','マジック','動物','医学','四字熟語','国旗','地球','地震','大リーグ','恐竜世界','有毒生物','漢字','科学','算数頭をつくる','絶滅動物3','絶滅動物4','記号・単位','都道府県','野球','食べ物']},
+  {id:'j050',genre:'児童書',title:'学校では教えてくれない大切なこと',author:'',publisher:'旺文社',subGenre:'',total:0,complete:false,missingRaw:'2,5~7,12,14,15,21,24,26~'},
+  {id:'j051',genre:'児童書',title:'学習まんが日本の歴史',author:'',publisher:'集英社',subGenre:'',total:20,complete:false,missingRaw:''},
+  {id:'j052',genre:'児童書',title:'古代遺跡のサバイバル',author:'',publisher:'毎日新聞社',subGenre:'',total:6,complete:false,missingRaw:'1,3~'},
+  {id:'j053',genre:'児童書',title:'集英社学習まんが世界の伝記（6巻）',author:'',publisher:'集英社',subGenre:'',total:6,complete:false,missingRaw:'',namedMissing:['野口英世','徳川家康','一休さん','福沢諭吉','二宮金次郎','新渡戸稲造']},
+  {id:'j054',genre:'児童書',title:'集英社学習まんが世界の伝記（8巻）',author:'',publisher:'集英社',subGenre:'',total:8,complete:false,missingRaw:'',namedMissing:['ノーベル','コロンブス','アインシュタイン','ニュートン','レオナルド・ダ・ビンチ']},
+  {id:'j055',genre:'児童書',title:'図鑑NEO 1〜10',author:'',publisher:'小学館',subGenre:'',total:10,complete:false,missingRaw:'6,7'},
+  {id:'j056',genre:'児童書',title:'図鑑NEO 11〜20',author:'',publisher:'小学館',subGenre:'',total:20,complete:false,missingRaw:'13,20',volOffset:11},
+  {id:'j057',genre:'児童書',title:'世界名作アニメ絵本 1〜20',author:'',publisher:'永岡書店',subGenre:'',total:20,complete:false,missingRaw:'12,15,18'},
+  {id:'j058',genre:'児童書',title:'世界名作アニメ絵本 21〜40',author:'',publisher:'永岡書店',subGenre:'',total:40,complete:false,missingRaw:'25,27,28,31,33~36,38~',volOffset:21},
+  {id:'j059',genre:'児童書',title:'世界名作ファンタジー',author:'',publisher:'ポプラ社',subGenre:'',total:60,complete:false,missingRaw:'1~16,18~29,31~51,53~'},
+  {id:'j060',genre:'児童書',title:'赤）集英社世界の伝記NEXT',author:'',publisher:'集英社',subGenre:'',total:23,complete:false,missingRaw:'',namedMissing:['アメリア・イヤハート','グレース・ケリー','キング牧師','マリア・フォン・トラップ','ロバート・キャパ','与謝野晶子','小林一三','ハワード・カーター']},
+  {id:'j061',genre:'児童書',title:'大型版あらしのよるに',author:'',publisher:'講談社',subGenre:'',total:7,complete:false,missingRaw:'5,7'},
+  {id:'j062',genre:'児童書',title:'徳間アニメ絵本スタジオジブリ映画1',author:'',publisher:'徳間書店',subGenre:'',total:11,complete:false,missingRaw:'',namedMissing:['ホタル','ぽんぽこ','耳をすま']},
+  {id:'j063',genre:'児童書',title:'徳間アニメ絵本スタジオジブリ映画2',author:'',publisher:'徳間書店',subGenre:'',total:0,complete:false,missingRaw:'',namedMissing:['山田くん','ハウル','ポニョ','アリエッティ','コクリコ','風立ちぬ','マーニー']},
+  {id:'j064',genre:'児童書',title:'日本史探偵コナン',author:'',publisher:'小学館',subGenre:'',total:10,complete:false,missingRaw:'7,9'},
+  {id:'j065',genre:'児童書',title:'日本昔ばなしアニメ絵本',author:'',publisher:'永岡書店',subGenre:'',total:16,complete:false,missingRaw:'12,14'},
+  {id:'j066',genre:'児童書',title:'魔法の庭ものがたり',author:'',publisher:'ポプラ社',subGenre:'',total:26,complete:false,missingRaw:'12,14,17~19,22,23,25,26'},
+  {id:'j067',genre:'児童書',title:'歴史まんがサバイバル',author:'',publisher:'毎日新聞社',subGenre:'',total:14,complete:false,missingRaw:'1,2,4~7,10,12~'},
+  {id:'j068',genre:'児童書',title:'ジャングルのサバイバル',author:'',publisher:'',subGenre:'',total:10,complete:false,missingRaw:'2,3,5,7~'},
+  {id:'j069',genre:'児童書',title:'学年別ドラえもん名作選6冊セット',author:'',publisher:'',subGenre:'',total:6,complete:false,missingRaw:'4,5,6'},
+
+  // ─── 少女 ───
+  {id:'sg001',genre:'少女',title:'NANA',author:'矢沢あい',publisher:'集英社',subGenre:'りぼん',total:21,complete:false,missingRaw:'1~3,5,7,11~20'},
+  {id:'sg002',genre:'少女',title:'SUPERLOVERS',author:'あべ美幸',publisher:'角川',subGenre:'CLDX',total:18,complete:false,missingRaw:'15~'},
+  {id:'sg003',genre:'少女',title:'椿町ロンリープラネット',author:'やまもり三香',publisher:'集英社',subGenre:'マーガレット',total:14,complete:false,missingRaw:'1~8'},
+  {id:'sg004',genre:'少女',title:'昭和元禄落語心中',author:'雲田はるこ',publisher:'講談社',subGenre:'KCITAN',total:10,complete:false,missingRaw:'9'},
+  {id:'sg005',genre:'少女',title:'あさきゆめみし',author:'大和和紀',publisher:'講談社',subGenre:'',total:10,complete:false,missingRaw:'9'},
+  {id:'sg006',genre:'少女',title:'カードキャプターさくら60周年記念',author:'CLAMP',publisher:'講談社',subGenre:'KCDX',total:9,complete:false,missingRaw:'2,3,5~'},
+  {id:'sg007',genre:'少女',title:'ちびまる子ちゃん',author:'さくらももこ',publisher:'集英社',subGenre:'りぼん',total:18,complete:false,missingRaw:'16,18'},
+
+  // ─── 青年 ───
+  {id:'sy001',genre:'青年',title:'あんどーなつ',author:'西ゆうじ',publisher:'小学館',subGenre:'スピリッツ',total:20,complete:true,missingRaw:'12~14,19,20'},
+  {id:'sy002',genre:'青年',title:'あずみ',author:'',publisher:'小学館',subGenre:'スピリッツ',total:48,complete:true,missingRaw:'1~41,47,48'},
+  {id:'sy003',genre:'青年',title:'阿吽',author:'',publisher:'',subGenre:'',total:14,complete:true,missingRaw:'7~12'},
+  {id:'sy004',genre:'青年',title:'デデデで',author:'',publisher:'',subGenre:'',total:12,complete:true,missingRaw:'5~'},
+  {id:'sy005',genre:'青年',title:'アオアシ',author:'',publisher:'',subGenre:'',total:38,complete:true,missingRaw:'8,17,21,24~27,29~'},
+  {id:'sy006',genre:'青年',title:'エマ',author:'森薫',publisher:'角川',subGenre:'BEAM',total:12,complete:true,missingRaw:'4,7~'},
+  {id:'sy007',genre:'青年',title:'キングダム（青年誌版）',author:'',publisher:'集英社',subGenre:'ヤングジャンプ',total:75,complete:false,missingRaw:''},
+  {id:'sy008',genre:'青年',title:'エンゼルバンク',author:'三田紀房',publisher:'講談社',subGenre:'モーニング',total:14,complete:true,missingRaw:'11~'},
+  {id:'sy009',genre:'青年',title:'ドラゴン桜',author:'三田紀房',publisher:'講談社',subGenre:'モーニング',total:21,complete:true,missingRaw:'18,20'},
+  {id:'sy010',genre:'青年',title:'へうげもの',author:'山田芳裕',publisher:'講談社',subGenre:'モーニング',total:25,complete:true,missingRaw:'10,15,17,20~25'},
+  {id:'sy011',genre:'青年',title:'紫電改343',author:'須本壮一',publisher:'講談社',subGenre:'イブニング',total:9,complete:false,missingRaw:'8~'},
+  {id:'sy012',genre:'青年',title:'行け！稲中卓球部',author:'古谷実',publisher:'講談社',subGenre:'ヤンマガ',total:13,complete:true,missingRaw:''},
+  {id:'sy013',genre:'青年',title:'シグルイ',author:'山口貴由',publisher:'秋田書店',subGenre:'チャンピオンRED',total:15,complete:false,missingRaw:'8~'},
+  {id:'sy014',genre:'青年',title:'刃牙道',author:'',publisher:'秋田書店',subGenre:'チャンピオン',total:17,complete:false,missingRaw:''},
+  {id:'sy015',genre:'青年',title:'バキ道',author:'',publisher:'秋田書店',subGenre:'チャンピオン',total:22,complete:false,missingRaw:''},
+  {id:'sy016',genre:'青年',title:'落第忍者乱太郎',author:'',publisher:'朝日新聞社',subGenre:'',total:65,complete:false,missingRaw:'19,21~33,35~37,39~41,48~52,54~'},
+  {id:'sy017',genre:'青年',title:'マブラヴオルタネイティブ',author:'蒔島梓',publisher:'角川',subGenre:'電撃コミック',total:17,complete:false,missingRaw:'16,17'},
+  {id:'sy018',genre:'青年',title:'凪のあすから',author:'前田理想',publisher:'角川',subGenre:'電撃コミック',total:6,complete:false,missingRaw:'3,4,6'},
+  {id:'sy019',genre:'青年',title:'ガンスリンガーガール',author:'',publisher:'角川',subGenre:'電撃コミック',total:15,complete:false,missingRaw:'9'},
+  {id:'sy020',genre:'青年',title:'とある科学の超電磁砲',author:'',publisher:'角川',subGenre:'電撃コミック',total:19,complete:false,missingRaw:'16,17,19~'},
+  {id:'sy021',genre:'青年',title:'幼女戦記',author:'',publisher:'角川',subGenre:'',total:30,complete:false,missingRaw:'1~9,18~'},
+  {id:'sy022',genre:'青年',title:'新世紀エヴァンゲリオン',author:'',publisher:'角川',subGenre:'',total:14,complete:false,missingRaw:'5,9~14'},
+  {id:'sy023',genre:'青年',title:'機動戦士ガンダム0083',author:'',publisher:'角川',subGenre:'',total:18,complete:false,missingRaw:'11~'},
+  {id:'sy024',genre:'青年',title:'CITY',author:'',publisher:'角川',subGenre:'',total:13,complete:false,missingRaw:'8~'},
+  {id:'sy025',genre:'青年',title:'ハッピーシュガーライフ',author:'鍵空とみやき',publisher:'スクエアエニックス',subGenre:'GGジョーカー',total:11,complete:false,missingRaw:''},
+  {id:'sy026',genre:'青年',title:'ゆるキャン△',author:'',publisher:'芳文社',subGenre:'きらら',total:17,complete:false,missingRaw:'10,14~'},
+  {id:'sy027',genre:'青年',title:'カゲロウデイズ',author:'佐藤まひろ',publisher:'',subGenre:'MFコミックス',total:13,complete:false,missingRaw:'11,13'},
+  {id:'sy028',genre:'青年',title:'あたしんち',author:'',publisher:'',subGenre:'',total:21,complete:false,missingRaw:'20'},
+  {id:'sy029',genre:'青年',title:'黒執事',author:'枢やな',publisher:'集英社',subGenre:'Gファンタジー',total:34,complete:false,missingRaw:'22,26~'},
+  {id:'sy030',genre:'青年',title:'ぐらんぶる',author:'吉岡公威',publisher:'講談社',subGenre:'',total:24,complete:false,missingRaw:'20~'},
+  {id:'sy031',genre:'青年',title:'呪術廻戦',author:'芥見下々',publisher:'集英社',subGenre:'ジャンプ',total:30,complete:true,missingRaw:''},
+  {id:'sy032',genre:'青年',title:'PSYCHO-PASS 狡噛慎也',author:'後藤みどり',publisher:'MAGGarden',subGenre:'',total:6,complete:false,missingRaw:'5,6'},
+  {id:'sy033',genre:'青年',title:'PSYCHO-PASS 2',author:'後藤みどり',publisher:'MAGGarden',subGenre:'',total:5,complete:false,missingRaw:'4~'},
+  {id:'sy034',genre:'青年',title:'PSYCHO-PASS 3',author:'',publisher:'集英社',subGenre:'',total:0,complete:false,missingRaw:'2~'},
+  {id:'sy035',genre:'青年',title:'ナンバカ',author:'双又翔',publisher:'',subGenre:'comicobooks',total:8,complete:false,missingRaw:'7,8'},
+  {id:'sy036',genre:'青年',title:'猫と竜',author:'アマラ',publisher:'宝島社',subGenre:'このマンガがすごい',total:10,complete:false,missingRaw:'4,7~'},
+  {id:'sy037',genre:'青年',title:'おやすみぷんぷん',author:'浅野いにお',publisher:'小学館',subGenre:'スピリッツ',total:13,complete:false,missingRaw:'2,3,5~11'},
+  {id:'sy038',genre:'青年',title:'よつばと！',author:'あずまきよひこ',publisher:'',subGenre:'電撃コミックス',total:0,complete:false,missingRaw:'14~'},
+  {id:'sy039',genre:'青年',title:'ペルソナ3',author:'曽我部修司',publisher:'',subGenre:'電撃コミックス',total:11,complete:false,missingRaw:'7~'},
+  {id:'sy040',genre:'青年',title:'ペルソナ4',author:'曽我部修司',publisher:'',subGenre:'電撃コミックス',total:13,complete:false,missingRaw:'12~'},
+  {id:'sy041',genre:'青年',title:'蟲師',author:'漆原友紀',publisher:'講談社',subGenre:'アフタヌーン',total:10,complete:false,missingRaw:'10'},
+  {id:'sy042',genre:'青年',title:'カラミざかり',author:'桂あいり',publisher:'講談社',subGenre:'ヤングマガジン',total:7,complete:false,missingRaw:'2,7'},
+  {id:'sy043',genre:'青年',title:'バガボンド',author:'井上雄彦',publisher:'集英社',subGenre:'ヤングジャンプ',total:0,complete:false,missingRaw:'4~20,27~32,34~'},
+  {id:'sy044',genre:'青年',title:'東京喰種',author:'',publisher:'',subGenre:'',total:14,complete:false,missingRaw:'10,11'},
+  {id:'sy045',genre:'青年',title:'東京喰種:re',author:'',publisher:'',subGenre:'',total:16,complete:false,missingRaw:''},
+
+  // ─── 小説 ───
+  {id:'n001',genre:'小説',title:'物語シリーズ',author:'西尾維新',publisher:'',subGenre:'ラノベ',total:23,complete:true,missingRaw:'',namedMissing:['偽上','偽下','猫黒','鬼','恋','終中','終下','撫','結','忍']},
+  {id:'n002',genre:'小説',title:'刀語',author:'西尾維新',publisher:'',subGenre:'ラノベ',total:12,complete:true,missingRaw:'3~'},
+  {id:'n003',genre:'小説',title:'戯言シリーズ（銀色）',author:'西尾維新',publisher:'講談社',subGenre:'ラノベ',total:9,complete:false,missingRaw:'',namedMissing:['クビシメ','クビツリ','サイコ上','サイコ下','ヒトクイ','ネコソギ上','ネコソギ中','ネコソギ下']},
+  {id:'n004',genre:'小説',title:'戯言シリーズ',author:'西尾維新',publisher:'講談社',subGenre:'ラノベ',total:9,complete:false,missingRaw:'',namedMissing:['クビキリ','クビツリ','サイコ上','サイコ下','ヒトクイ','ネコソギ上','ネコソギ中','ネコソギ下']},
+  {id:'n005',genre:'小説',title:'転生したらスライムだった件',author:'伏瀬',publisher:'',subGenre:'ラノベ',total:22,complete:false,missingRaw:'1~3,8~'},
+  {id:'n006',genre:'小説',title:'悪の娘',author:'悪ノP',publisher:'',subGenre:'ラノベ',total:4,complete:true,missingRaw:'',namedMissing:['緑','赤','青']},
+  {id:'n007',genre:'小説',title:'IQ84',author:'村上春樹',publisher:'',subGenre:'日本人作家',total:6,complete:true,missingRaw:''},
+  {id:'n008',genre:'小説',title:'ニンジャスレイヤー',author:'',publisher:'',subGenre:'ラノベ',total:21,complete:false,missingRaw:'1~3,14~'},
+  {id:'n009',genre:'小説',title:'深夜特急',author:'沢木耕太郎',publisher:'新潮文庫',subGenre:'日本人作家',total:6,complete:false,missingRaw:'2'},
+  {id:'n010',genre:'小説',title:'二つの祖国',author:'',publisher:'',subGenre:'日本人作家',total:4,complete:false,missingRaw:'1,2'},
+  {id:'n011',genre:'小説',title:'加賀恭一郎シリーズ',author:'東野圭吾',publisher:'講談社',subGenre:'日本人作家',total:10,complete:false,missingRaw:'',namedMissing:['卒業','眠りの森','どちらかが','悪意','私が彼を','赤い指','新参者']},
+  {id:'n012',genre:'小説',title:'ガリレオシリーズ',author:'東野圭吾',publisher:'文春文庫',subGenre:'日本人作家',total:8,complete:false,missingRaw:'',namedMissing:['探偵','予知夢','容疑者X','苦悩','真夏の','禁断の']},
+  {id:'n013',genre:'小説',title:'創竜伝',author:'田中芳樹',publisher:'講談社',subGenre:'日本人作家',total:13,complete:false,missingRaw:'13'},
+  {id:'n014',genre:'小説',title:'坂の上の雲',author:'司馬遼太郎',publisher:'文春文庫',subGenre:'日本人作家',total:8,complete:false,missingRaw:'4~'},
+  {id:'n015',genre:'小説',title:'翔ぶが如く',author:'司馬遼太郎',publisher:'文春文庫',subGenre:'日本人作家',total:10,complete:false,missingRaw:'6~'},
+  {id:'n016',genre:'小説',title:'龍馬がゆく',author:'司馬遼太郎',publisher:'文春文庫',subGenre:'日本人作家',total:10,complete:false,missingRaw:'5,6,8~'},
+  {id:'n017',genre:'小説',title:'アルスラーン戦記',author:'田中芳樹',publisher:'',subGenre:'日本人作家',total:16,complete:false,missingRaw:'7,8,10~'},
+  {id:'n018',genre:'小説',title:'新太平記',author:'山岡荘八',publisher:'講談社',subGenre:'日本人作家',total:5,complete:false,missingRaw:'1,2,4,5'},
+  {id:'n019',genre:'小説',title:'新・平家物語',author:'吉川英治',publisher:'講談社',subGenre:'日本人作家',total:16,complete:false,missingRaw:'1~3,5,7,15,16'},
+  {id:'n020',genre:'小説',title:'私本太平記',author:'吉川英治',publisher:'講談社',subGenre:'日本人作家',total:8,complete:true,missingRaw:''},
+  {id:'n021',genre:'小説',title:'新書太閤記',author:'吉川英治',publisher:'講談社',subGenre:'日本人作家',total:11,complete:false,missingRaw:'11'},
+  {id:'n022',genre:'小説',title:'三国志（吉川英治）',author:'吉川英治',publisher:'講談社',subGenre:'日本人作家',total:8,complete:true,missingRaw:''},
+  {id:'n023',genre:'小説',title:'三国志（北方謙三）',author:'北方謙三',publisher:'ハルキ文庫',subGenre:'日本人作家',total:13,complete:true,missingRaw:''},
+  {id:'n024',genre:'小説',title:'史記武帝紀',author:'北方謙三',publisher:'ハルキ文庫',subGenre:'日本人作家',total:7,complete:false,missingRaw:'5~'},
+  {id:'n025',genre:'小説',title:'トワイライト',author:'ステファニー・メイヤー',publisher:'ヴィレッジブックス',subGenre:'外国人作家',total:10,complete:false,missingRaw:'',namedMissing:['2上','２下','３下','４上','哀しき']},
+  {id:'n026',genre:'小説',title:'みをつくし料理帖',author:'髙田郁',publisher:'ハルキ文庫',subGenre:'日本人作家',total:12,complete:true,missingRaw:''},
+  {id:'n027',genre:'小説',title:'あきない世傳',author:'髙田郁',publisher:'ハルキ文庫',subGenre:'日本人作家',total:15,complete:false,missingRaw:'7,8,11,14~'},
+  {id:'n028',genre:'小説',title:'鎌倉河岸捕物控',author:'佐伯泰英',publisher:'ハルキ文庫',subGenre:'日本人作家',total:32,complete:false,missingRaw:'1~10,12~27,29,31'},
+  {id:'n029',genre:'小説',title:'本所おけら長屋',author:'畠山健二',publisher:'PHP文庫',subGenre:'日本人作家',total:20,complete:false,missingRaw:'2,4,7~9,11~14,19,20'},
+
+  // ─── 単行本 ───
+  {id:'t001',genre:'単行本',title:'夢をかなえるゾウ',author:'水野敬也',publisher:'飛鳥新社',subGenre:'自己啓発',total:4,complete:false,missingRaw:'1,4'},
+  {id:'t002',genre:'単行本',title:'まんが攻略BON!',author:'',publisher:'GAKKEN',subGenre:'',total:0,complete:false,missingRaw:'4,10,11,12,14~'},
+  {id:'t003',genre:'単行本',title:'中学入試まんが攻略BON！',author:'',publisher:'GAKKEN',subGenre:'',total:0,complete:false,missingRaw:'2~6,12~'},
+  {id:'t004',genre:'単行本',title:'中学入試まんが攻略BON！（古）',author:'',publisher:'GAKKEN',subGenre:'',total:0,complete:false,missingRaw:'2~5,8~'},
+  {id:'t005',genre:'単行本',title:'定期テスト入試対策まんが攻略BON!',author:'',publisher:'GAKKEN',subGenre:'',total:0,complete:false,missingRaw:'3,7,10~'},
+  {id:'t006',genre:'単行本',title:'ビジョナリーカンパニー',author:'',publisher:'',subGenre:'',total:4,complete:false,missingRaw:'1,2'},
+
+  // ─── 文庫・ワイド ───
+  {id:'bw001',genre:'文庫・ワイド',title:'魔法陣グルグル（ワイド）',author:'衛藤ヒロユキ',publisher:'SCエニックス',subGenre:'GCオンライン',total:8,complete:false,missingRaw:'4,6,7'},
+  {id:'bw002',genre:'文庫・ワイド',title:'AKIRA（ワイド）',author:'',publisher:'講談社',subGenre:'KCDX',total:6,complete:false,missingRaw:'1'},
+  {id:'bw003',genre:'文庫・ワイド',title:'今日から俺は（ワイド）',author:'西森博之',publisher:'小学館',subGenre:'サンデー',total:19,complete:false,missingRaw:'18,19'},
+  {id:'bw004',genre:'文庫・ワイド',title:'天使なんかじゃない！（ワイド）',author:'矢沢あい',publisher:'集英社',subGenre:'',total:4,complete:false,missingRaw:'1,2'},
+  {id:'bw005',genre:'文庫・ワイド',title:'筋肉マン（文庫）',author:'ゆでたまご',publisher:'集英社',subGenre:'',total:18,complete:false,missingRaw:'1~3,5~'},
+  {id:'bw006',genre:'文庫・ワイド',title:'ピンポン（ワイド）',author:'松本大洋',publisher:'小学館',subGenre:'BigSpirits',total:5,complete:false,missingRaw:'1,2,4,5'},
+  {id:'bw007',genre:'文庫・ワイド',title:'ヘタリアAXISPOWERS（ワイド）',author:'日丸屋秀和',publisher:'幻冬舎',subGenre:'',total:6,complete:false,missingRaw:'3~'},
+  {id:'bw008',genre:'文庫・ワイド',title:'ヘタリア的WW（ワイド）',author:'日丸屋秀和',publisher:'幻冬舎',subGenre:'',total:0,complete:false,missingRaw:'3~'},
+  {id:'bw009',genre:'文庫・ワイド',title:'天才バカボン 1〜7（文庫）',author:'赤塚不二夫',publisher:'竹書房',subGenre:'',total:7,complete:false,missingRaw:'2,6,7'},
+  {id:'bw010',genre:'文庫・ワイド',title:'天才バカボン 8〜14（文庫）',author:'赤塚不二夫',publisher:'竹書房',subGenre:'',total:14,complete:false,missingRaw:'9,10',volOffset:8},
+  {id:'bw011',genre:'文庫・ワイド',title:'天才バカボン 15〜21（文庫）',author:'赤塚不二夫',publisher:'竹書房',subGenre:'',total:21,complete:false,missingRaw:'17,18',volOffset:15},
+  {id:'bw012',genre:'文庫・ワイド',title:'東方儚月抄（ワイド）',author:'ZUN',publisher:'一迅社',subGenre:'REXCOMIC',total:3,complete:false,missingRaw:''},
+  {id:'bw013',genre:'文庫・ワイド',title:'東方茨歌仙（ワイド）',author:'ZUN',publisher:'一迅社',subGenre:'REXCOMIC',total:10,complete:false,missingRaw:'6~'},
+  {id:'bw014',genre:'文庫・ワイド',title:'東方鈴奈庵（ワイド）',author:'ZUN',publisher:'角川書店',subGenre:'',total:7,complete:false,missingRaw:'6~'},
+  {id:'bw015',genre:'文庫・ワイド',title:'東方三月精（ワイド）',author:'ZUN',publisher:'角川書店',subGenre:'',total:3,complete:false,missingRaw:'2,3'},
+  {id:'bw016',genre:'文庫・ワイド',title:'北斗の拳（文庫）',author:'原哲也',publisher:'集英社',subGenre:'',total:15,complete:false,missingRaw:'1~5,7,10,11,14~'},
+  {id:'bw017',genre:'文庫・ワイド',title:'火の鳥（文庫）',author:'手塚治虫',publisher:'角川',subGenre:'',total:13,complete:false,missingRaw:'1,2,4,5,7~'},
+  {id:'bw018',genre:'文庫・ワイド',title:'ときめきトゥナイト（文庫）',author:'池野恋',publisher:'集英社',subGenre:'',total:16,complete:false,missingRaw:'1~15'},
+  {id:'bw019',genre:'文庫・ワイド',title:'あさきゆめみし（文庫）',author:'大和和紀',publisher:'講談社',subGenre:'',total:7,complete:false,missingRaw:'3~'},
+  {id:'bw020',genre:'文庫・ワイド',title:'伯爵カイン（文庫）',author:'由貴香織里',publisher:'白泉社',subGenre:'',total:6,complete:false,missingRaw:'2,3,5'},
+  {id:'bw021',genre:'文庫・ワイド',title:'まんがで読破（文庫）',author:'',publisher:'イースト・プレス',subGenre:'',total:0,complete:false,missingRaw:'',namedMissing:['人間','銀河','夜間','斜陽','破戒','武士道','蟹工船','赤と黒','ハムレット','レミゼラブル','孫子の兵法','こころ','死者の書']},
+  {id:'bw022',genre:'文庫・ワイド',title:'YAWARA（文庫）',author:'浦沢直樹',publisher:'小学館',subGenre:'',total:19,complete:false,missingRaw:'16'},
+  {id:'bw023',genre:'文庫・ワイド',title:'ふしぎ遊戯（文庫）',author:'渡瀬悠宇',publisher:'小学館',subGenre:'',total:10,complete:false,missingRaw:'10'},
+  {id:'bw024',genre:'文庫・ワイド',title:'八犬伝（文庫）',author:'碧也ぴんく',publisher:'ホーム社漫画文庫',subGenre:'',total:8,complete:false,missingRaw:'7'},
+  {id:'bw025',genre:'文庫・ワイド',title:'有閑倶楽部（文庫）',author:'一条あかり',publisher:'集英社',subGenre:'',total:11,complete:false,missingRaw:'1~9,11'},
+  {id:'bw026',genre:'文庫・ワイド',title:'バルバラ異界（文庫）',author:'萩尾望都',publisher:'小学館',subGenre:'',total:3,complete:false,missingRaw:'2,3'},
+  {id:'bw027',genre:'文庫・ワイド',title:'ジョジョの奇妙な冒険第4部（文庫）',author:'荒木飛呂彦',publisher:'集英社',subGenre:'',total:29,complete:false,missingRaw:'18~20,22~',volOffset:18},
+  {id:'bw028',genre:'文庫・ワイド',title:'BLACKJACK（文庫）',author:'手塚治虫',publisher:'秋田文庫',subGenre:'',total:17,complete:false,missingRaw:'1~16'},
+  {id:'bw029',genre:'文庫・ワイド',title:'銀と金（文庫）',author:'福本伸行',publisher:'双葉文庫',subGenre:'',total:8,complete:false,missingRaw:'1'},
+  {id:'bw030',genre:'文庫・ワイド',title:'蒼天航路（文庫）',author:'',publisher:'講談社',subGenre:'',total:18,complete:false,missingRaw:'17'},
+  {id:'bw031',genre:'文庫・ワイド',title:'秘密 トップシークレット（ワイド）',author:'清水玲子',publisher:'白泉社',subGenre:'JETSCOMICS',total:12,complete:false,missingRaw:'1~10,12'},
+  {id:'bw032',genre:'文庫・ワイド',title:'ゴールデンカムイ（コンビニ版）',author:'',publisher:'コンビニ',subGenre:'',total:14,complete:false,missingRaw:'4,5~',namedMissing:['樺太編1','樺太編2','樺太編3']},
+  {id:'bw033',genre:'文庫・ワイド',title:'アマテラス（ワイド）',author:'美内すずえ',publisher:'',subGenre:'',total:4,complete:false,missingRaw:'3,4'},
+  {id:'bw034',genre:'文庫・ワイド',title:'リボーン（文庫）',author:'天野明',publisher:'集英社',subGenre:'',total:21,complete:false,missingRaw:'12,20'},
+  {id:'bw035',genre:'文庫・ワイド',title:'封神演義（ワイド）',author:'',publisher:'',subGenre:'',total:18,complete:false,missingRaw:'18'},
+  {id:'bw036',genre:'文庫・ワイド',title:'ニセコイ（文庫）',author:'',publisher:'集英社',subGenre:'',total:0,complete:false,missingRaw:'1,5,6'},
+];
+
+// =====================================================================
+//  在庫データ管理（localStorage）
+// =====================================================================
+const STORAGE_KEY = 'setbook_inventory_v2';
+const EXPAND_KEY = 'setbook_expand_v1';
+const CUSTOM_KEY = 'setbook_custom_v1';
+const OVERRIDE_KEY = 'setbook_overrides_v1';
+const IMAGES_KEY = 'setbook_images_v1';
+
+let inventory = {};   // { seriesId: { volKey: count } }
+let expanded = {};    // { seriesId: bool }
+let customSeries = []; // ユーザー追加シリーズ
+let overrides = {};   // { seriesId: { field: val } | { _deleted: true } }
+let coverImages = {}; // { seriesId: base64DataURL }
+
+function loadStorage() {
+  try {
+    inventory = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    expanded = JSON.parse(localStorage.getItem(EXPAND_KEY) || '{}');
+    customSeries = JSON.parse(localStorage.getItem(CUSTOM_KEY) || '[]');
+    overrides = JSON.parse(localStorage.getItem(OVERRIDE_KEY) || '{}');
+    coverImages = JSON.parse(localStorage.getItem(IMAGES_KEY) || '{}');
+  } catch(e) {
+    inventory = {}; expanded = {}; customSeries = []; overrides = {}; coverImages = {};
+  }
+}
+
+function saveStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(inventory));
+  localStorage.setItem(EXPAND_KEY, JSON.stringify(expanded));
+  localStorage.setItem(CUSTOM_KEY, JSON.stringify(customSeries));
+  localStorage.setItem(OVERRIDE_KEY, JSON.stringify(overrides));
+  // 画像は個別に保存（容量超過対策）
+  try { localStorage.setItem(IMAGES_KEY, JSON.stringify(coverImages)); }
+  catch(e) { showToast('⚠️ 画像が多くて保存できませんでした'); }
+}
+
+// =====================================================================
+//  巻数パース
+// =====================================================================
+function parseMissingNums(raw, total, offset) {
+  const missing = new Set();
+  if (!raw || !raw.trim()) return missing;
+  const s = raw.replace(/[　\s]/g,'').replace(/〜/g,'~').replace(/[、，]/g,',');
+  s.split(',').forEach(part => {
+    if (!part) return;
+    if (part.includes('~')) {
+      const [a, b] = part.split('~');
+      const start = parseInt(a);
+      const end = b ? parseInt(b) : (total || 999);
+      if (!isNaN(start)) for (let i = start; i <= (isNaN(end)?999:end); i++) missing.add(i);
+    } else {
+      const n = parseInt(part);
+      if (!isNaN(n)) missing.add(n);
+    }
+  });
+  return missing;
+}
+
+// シリーズの在庫マップを返す { volKey: count }
+function getVolMap(series) {
+  const id = series.id;
+  if (!inventory[id]) {
+    // 初期値を生成
+    const map = {};
+    const missing = parseMissingNums(series.missingRaw, series.total, series.volOffset);
+    const offset = series.volOffset || 1;
+    const total = series.total || 0;
+
+    if (total > 0) {
+      for (let v = offset; v <= (series.volOffset ? offset + total - offset : total); v++) {
+        map[v] = missing.has(v) ? 0 : 1;
+      }
+    }
+    // named missing
+    if (series.namedMissing) {
+      series.namedMissing.forEach(n => { map['n_' + n] = 0; });
+    }
+    inventory[id] = map;
+  }
+  return inventory[id];
+}
+
+function getCount(seriesId, volKey) {
+  return (inventory[seriesId] && inventory[seriesId][volKey]) || 0;
+}
+
+// =====================================================================
+//  タブ・状態
+// =====================================================================
+let currentTab = '少年';
+let allSeries = [];
+let modalState = null;
+
+function getAllSeries() {
+  return [...INITIAL_DATA, ...customSeries]
+    .filter(s => !(overrides[s.id] && overrides[s.id]._deleted))
+    .map(s => overrides[s.id] ? {...s, ...overrides[s.id]} : s);
+}
+
+function getGenres() {
+  const set = new Set(getAllSeries().map(s => s.genre));
+  return [...set];
+}
+
+function getTabSeries(genre) {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  return getAllSeries().filter(s => {
+    if (s.genre !== genre) return false;
+    if (!q) return true;
+    return s.title.toLowerCase().includes(q) || s.author.toLowerCase().includes(q);
+  });
+}
+
+// =====================================================================
+//  統計
+// =====================================================================
+function calcStats(series) {
+  const map = getVolMap(series);
+  let owned = 0, missing = 0;
+  Object.values(map).forEach(c => c > 0 ? owned++ : missing++);
+  return { owned, missing, total: owned + missing };
+}
+
+// =====================================================================
+//  レンダリング
+// =====================================================================
+function render() {
+  renderTabs();
+  renderStats();
+  renderList();
+}
+
+function renderTabs() {
+  const genres = getGenres();
+  const el = document.getElementById('tabs');
+  el.innerHTML = genres.map(g =>
+    `<div class="tab${g===currentTab?' active':''}" onclick="switchTab('${g}')">${g}</div>`
+  ).join('');
+}
+
+function renderStats() {
+  const list = getTabSeries(currentTab);
+  let totalOwned = 0, totalMissing = 0;
+  list.forEach(s => {
+    const st = calcStats(s);
+    totalOwned += st.owned;
+    totalMissing += st.missing;
+  });
+  document.getElementById('stats').innerHTML =
+    `<div class="stat-item"><span class="stat-dot green"></span>所持: ${totalOwned}冊</div>` +
+    `<div class="stat-item"><span class="stat-dot red"></span>不足: ${totalMissing}冊</div>` +
+    `<div class="stat-item">シリーズ数: ${list.length}</div>`;
+}
+
+function renderList() {
+  const list = getTabSeries(currentTab);
+  const el = document.getElementById('list');
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div>該当なし</div></div>';
+    return;
+  }
+  el.innerHTML = list.map(s => renderCard(s)).join('');
+}
+
+function renderCard(s) {
+  const st = calcStats(s);
+  const isExpanded = expanded[s.id] || false;
+  const totalDisplay = s.total > 0 ? `全${s.total}巻` : '巻数不明';
+  const summaryText = st.missing > 0
+    ? `<span class="vol-summary ng">不足 ${st.missing}冊</span>`
+    : `<span class="vol-summary ok">✓ 完備</span>`;
+
+  const metaParts = [s.author, s.publisher, s.subGenre].filter(Boolean);
+  const eid = s.id.replace(/'/g,"\\'");
+
+  let bodyHtml = '';
+  if (isExpanded) {
+    const map = getVolMap(s);
+    const offset = s.volOffset || 1;
+    const total = s.total || 0;
+
+    // Progress bar
+    const pct = st.total > 0 ? Math.round(st.owned / st.total * 100) : 0;
+    let progressHtml = '';
+    if (s.total > 0) {
+      progressHtml = `<div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="progress-label">${st.owned} / ${st.total}冊所持 (${pct}%)</div>
+      </div>`;
+    }
+
+    // Legend
+    const legendHtml = `<div class="legend">
+      <div class="legend-item"><div class="legend-swatch" style="background:#d5f5e3;border:1.5px solid #a9dfbf"></div>所持</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#fdecea;border:1.5px solid #f5b7b1"></div>不足</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#fef9e7;border:1.5px solid #f9e79f"></div>複数所持</div>
+    </div>`;
+
+    // Vol count bar (above grid)
+    const countBarHtml = `<div class="vol-count-bar">
+      <span style="color:#27ae60">✅ 所持 ${st.owned}冊</span>
+      <span style="color:#e74c3c">❌ 不足 ${st.missing}冊</span>
+      ${st.total > 0 ? `<span style="color:#aaa">/ 全 ${st.total}冊</span>` : ''}
+      <span class="lp-hint">タップ=+1 &nbsp;長押し=数量設定</span>
+    </div>`;
+
+    // Numeric volumes
+    let volsHtml = '';
+    if (total > 0) {
+      const cells = [];
+      for (let v = offset; v <= total; v++) {
+        const cnt = map[v] || 0;
+        const cls = cnt === 0 ? 'missing' : cnt === 1 ? 'owned' : 'dupe';
+        const badge = cnt > 1 ? `<span class="vol-count-badge">${cnt}</span>` : '';
+        const sid = eid, vk = v, ttl = s.title.replace(/'/g,"\\'");
+        cells.push(`<div class="vol-cell ${cls}"
+          ontouchstart="startLP(event,'${sid}','${vk}','${ttl}','${vk}巻')"
+          ontouchmove="cancelLP()"
+          ontouchend="endLP(event,'${sid}','${vk}','${ttl}','${vk}巻')"
+          onclick="quickAdd('${sid}','${vk}','${ttl}','${vk}巻')"
+          oncontextmenu="openModal('${sid}','${vk}','${ttl}','${vk}巻');return false;"
+        >${v}${badge}</div>`);
+      }
+      volsHtml = `<div class="vol-grid">${cells.join('')}</div>`;
+    }
+
+    // Named volumes
+    let namedHtml = '';
+    if (s.namedMissing && s.namedMissing.length > 0) {
+      const chips = s.namedMissing.map(n => {
+        const key = 'n_' + n;
+        const cnt = map[key] || 0;
+        const cls = cnt > 0 ? 'owned' : 'missing';
+        const ns = n.replace(/'/g,"\\'");
+        const ks = key.replace(/'/g,"\\'");
+        const ttl = s.title.replace(/'/g,"\\'");
+        return `<div class="named-chip ${cls}"
+          ontouchstart="startLP(event,'${eid}','${ks}','${ttl}','${ns}')"
+          ontouchmove="cancelLP()"
+          ontouchend="endLP(event,'${eid}','${ks}','${ttl}','${ns}')"
+          onclick="quickAdd('${eid}','${ks}','${ttl}','${ns}')"
+          oncontextmenu="openModal('${eid}','${ks}','${ttl}','${ns}');return false;"
+        >${n}${cnt > 1 ? ` <b>×${cnt}</b>` : ''}</div>`;
+      });
+      namedHtml = `<div style="margin-top:6px"><div class="named-chips">${chips.join('')}</div></div>`;
+    }
+
+    bodyHtml = `<div class="series-body">
+      ${progressHtml}
+      ${legendHtml}
+      ${countBarHtml}
+      ${volsHtml}
+      ${namedHtml}
+    </div>`;
+  }
+
+  const imgSrc = coverImages[s.id];
+  const coverHtml = imgSrc
+    ? `<img src="${imgSrc}" alt="cover">`
+    : `<span class="cover-placeholder">📚</span><span class="cover-add-hint">タップで追加</span>`;
+
+  return `<div class="series-card" id="card-${s.id}">
+    <div class="series-header" onclick="toggleExpand('${eid}')">
+      <div class="cover-wrap" onclick="openCoverPicker('${eid}');event.stopPropagation()" title="画像を変更">
+        ${coverHtml}
+      </div>
+      <div style="flex:1;min-width:0;margin-left:10px">
+        <div class="series-title">${s.title}</div>
+        <div class="series-meta">
+          ${metaParts.map(p => `<span class="meta-tag">${p}</span>`).join('')}
+          ${s.complete ? '<span class="meta-tag" style="background:#eafaf1;color:#1e8449">完結</span>' : ''}
+        </div>
+      </div>
+      <div class="series-right">
+        ${summaryText}
+        <div style="font-size:11px;color:#aaa">${totalDisplay} ${isExpanded ? '▲' : '▼'}</div>
+      </div>
+      <button class="edit-btn" onclick="openEditModal('${eid}');event.stopPropagation()">✏️</button>
+    </div>
+    ${bodyHtml}
+  </div>`;
+}
+
+function toggleExpand(id) {
+  expanded[id] = !expanded[id];
+  saveStorage();
+  render();
+}
+
+function switchTab(genre) {
+  currentTab = genre;
+  render();
+}
+
+// =====================================================================
+//  モーダル
+// =====================================================================
+function openModal(seriesId, volKey, seriesTitle, volLabel) {
+  const cnt = getCount(seriesId, volKey);
+  const label = volLabel || String(volKey) + '巻';
+  modalState = { seriesId, volKey, origCount: cnt, count: cnt };
+  document.getElementById('m-title').textContent = seriesTitle;
+  document.getElementById('m-sub').textContent = `${label} の在庫数`;
+  document.getElementById('m-count').textContent = cnt;
+  document.getElementById('vol-overlay').classList.add('show');
+}
+
+function adjustModal(delta) {
+  if (!modalState) return;
+  modalState.count = Math.max(0, modalState.count + delta);
+  document.getElementById('m-count').textContent = modalState.count;
+}
+
+function saveModal() {
+  if (!modalState) return;
+  const { seriesId, volKey, count } = modalState;
+  if (!inventory[seriesId]) inventory[seriesId] = {};
+  inventory[seriesId][volKey] = count;
+  saveStorage();
+  closeOverlay();
+  render();
+}
+
+function closeOverlay(e) {
+  if (e && e.target !== document.getElementById('vol-overlay')) return;
+  document.getElementById('vol-overlay').classList.remove('show');
+  modalState = null;
+}
+
+// =====================================================================
+//  シリーズ追加
+// =====================================================================
+function openAddModal() {
+  const sel = document.getElementById('f-genre');
+  sel.innerHTML = getGenres().map(g => `<option value="${g}">${g}</option>`).join('') +
+    `<option value="__new__">＋ 新しいジャンル</option>`;
+  sel.value = currentTab;
+  ['f-title','f-author','f-publisher','f-total','f-missing'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-complete').value = '';
+  document.getElementById('add-overlay').classList.add('show');
+}
+
+function closeAddOverlay(e) {
+  if (e && e.target !== document.getElementById('add-overlay')) return;
+  document.getElementById('add-overlay').classList.remove('show');
+}
+
+function saveNewSeries() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('タイトルを入力してください'); return; }
+  let genre = document.getElementById('f-genre').value;
+  if (genre === '__new__') {
+    genre = prompt('新しいジャンル名を入力してください');
+    if (!genre || !genre.trim()) return;
+    genre = genre.trim();
+  }
+  const totalRaw = document.getElementById('f-total').value;
+  const total = parseInt(totalRaw) || 0;
+  const missingRaw = document.getElementById('f-missing').value.trim();
+  const namedMissing = [];
+
+  // Check if missingRaw contains non-numeric items
+  const parts = missingRaw.replace(/[~〜、]/g,',').split(',').map(p=>p.trim()).filter(Boolean);
+  const named = parts.filter(p => isNaN(parseInt(p)) && !p.includes('~'));
+  named.forEach(n => namedMissing.push(n));
+
+  const s = {
+    id: 'c_' + Date.now(),
+    genre,
+    title,
+    author: document.getElementById('f-author').value.trim(),
+    publisher: document.getElementById('f-publisher').value.trim(),
+    subGenre: '',
+    total,
+    complete: document.getElementById('f-complete').value === '1',
+    missingRaw: parts.filter(p => !isNaN(parseInt(p)) || p.includes('~')).join(','),
+    namedMissing: namedMissing.length ? namedMissing : undefined,
+  };
+  customSeries.push(s);
+  saveStorage();
+  document.getElementById('add-overlay').classList.remove('show');
+  currentTab = genre;
+  render();
+}
+
+// =====================================================================
+//  エクスポート・リセット
+// =====================================================================
+function exportCSV() {
+  const list = getAllSeries().filter(s => s.genre === currentTab);
+  const rows = [['タイトル','作者','出版社','分類','巻数','所持数','不足数','不足巻']];
+  list.forEach(s => {
+    const st = calcStats(s);
+    const map = getVolMap(s);
+    const missingVols = Object.entries(map)
+      .filter(([,c]) => c === 0)
+      .map(([k]) => k.startsWith('n_') ? k.slice(2) : k)
+      .join(' / ');
+    rows.push([s.title, s.author, s.publisher, s.subGenre, s.total||'', st.owned, st.missing, missingVols]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${currentTab}_在庫_${new Date().toLocaleDateString('ja-JP').replace(/\//g,'-')}.csv`;
+  a.click();
+}
+
+function resetConfirm() {
+  if (confirm(`「${currentTab}」の在庫データをCSV初期値にリセットしますか？\nこの操作は取り消せません。`)) {
+    const ids = getAllSeries().filter(s => s.genre === currentTab).map(s => s.id);
+    ids.forEach(id => delete inventory[id]);
+    saveStorage();
+    render();
+  }
+}
+
+// =====================================================================
+//  カバー画像
+// =====================================================================
+let _pendingCoverSid = null;
+
+function openCoverPicker(sid) {
+  _pendingCoverSid = sid;
+  const inp = document.getElementById('cover-input');
+  inp.value = '';
+  inp.click();
+}
+
+function onCoverSelected(e) {
+  const file = e.target.files[0];
+  if (!file || !_pendingCoverSid) return;
+  const sid = _pendingCoverSid;
+  _pendingCoverSid = null;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      // 縦120px程度に縮小（横は比率維持）
+      const maxH = 150, maxW = 120;
+      let w = img.width, h = img.height;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const data = canvas.toDataURL('image/jpeg', 0.82);
+      coverImages[sid] = data;
+      saveStorage();
+      render();
+      showToast('📷 画像を保存しました');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// =====================================================================
+//  クイック追加 & 長押し
+// =====================================================================
+let _lpTimer = null;
+let _lpFired = false;
+
+function startLP(e, sid, vkey, title, label) {
+  _lpFired = false;
+  _lpTimer = setTimeout(() => {
+    _lpFired = true;
+    _lpTimer = null;
+    openModal(sid, vkey, title, label);
+  }, 480);
+}
+
+function cancelLP() {
+  if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+}
+
+function endLP(e, sid, vkey, title, label) {
+  e.preventDefault();
+  if (_lpFired) { _lpFired = false; return; }
+  if (_lpTimer) {
+    clearTimeout(_lpTimer);
+    _lpTimer = null;
+    quickAdd(sid, vkey, title, label);
+  }
+}
+
+function quickAdd(sid, vkey, title, label) {
+  if (!inventory[sid]) inventory[sid] = {};
+  const cur = inventory[sid][vkey] || 0;
+  inventory[sid][vkey] = cur + 1;
+  saveStorage();
+  showToast(`${label} ＋１ → ${cur + 1}冊`);
+  render();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// =====================================================================
+//  シリーズ編集
+// =====================================================================
+let editingId = null;
+
+function openEditModal(id) {
+  editingId = id;
+  const all = getAllSeries();
+  const s = all.find(x => x.id === id);
+  if (!s) return;
+
+  const sel = document.getElementById('e-genre');
+  sel.innerHTML = getGenres().map(g => `<option value="${g}">${g}</option>`).join('') +
+    `<option value="__new__">＋ 新しいジャンル</option>`;
+
+  document.getElementById('e-id').value = id;
+  document.getElementById('e-title').value = s.title || '';
+  document.getElementById('e-author').value = s.author || '';
+  document.getElementById('e-publisher').value = s.publisher || '';
+  document.getElementById('e-subgenre').value = s.subGenre || '';
+  sel.value = s.genre || currentTab;
+  document.getElementById('e-total').value = s.total || 0;
+  document.getElementById('e-complete').value = s.complete ? '1' : '';
+  document.getElementById('e-named').value = (s.namedMissing || []).join(',');
+
+  document.getElementById('edit-overlay').classList.add('show');
+}
+
+function closeEditOverlay(e) {
+  if (e && e.target !== document.getElementById('edit-overlay')) return;
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingId = null;
+}
+
+function saveEditSeries() {
+  const id = editingId;
+  if (!id) return;
+
+  let genre = document.getElementById('e-genre').value;
+  if (genre === '__new__') {
+    genre = prompt('新しいジャンル名を入力してください');
+    if (!genre || !genre.trim()) return;
+    genre = genre.trim();
+  }
+
+  const namedRaw = document.getElementById('e-named').value.trim();
+  const namedMissing = namedRaw ? namedRaw.split(',').map(s=>s.trim()).filter(Boolean) : undefined;
+
+  overrides[id] = {
+    ...(overrides[id] || {}),
+    title: document.getElementById('e-title').value.trim(),
+    author: document.getElementById('e-author').value.trim(),
+    publisher: document.getElementById('e-publisher').value.trim(),
+    subGenre: document.getElementById('e-subgenre').value.trim(),
+    genre,
+    total: parseInt(document.getElementById('e-total').value) || 0,
+    complete: document.getElementById('e-complete').value === '1',
+    namedMissing,
+    _deleted: false,
+  };
+  saveStorage();
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingId = null;
+  render();
+}
+
+function deleteCoverImage() {
+  if (!editingId) return;
+  if (coverImages[editingId]) {
+    delete coverImages[editingId];
+    saveStorage();
+    showToast('画像を削除しました');
+    render();
+  }
+}
+
+function deleteSeriesConfirm() {
+  if (!editingId) return;
+  const all = getAllSeries();
+  const s = all.find(x => x.id === editingId);
+  if (!confirm(`「${s ? s.title : ''}」を削除しますか？\n在庫データも失われます。`)) return;
+  overrides[editingId] = { _deleted: true };
+  if (inventory[editingId]) delete inventory[editingId];
+  saveStorage();
+  document.getElementById('edit-overlay').classList.remove('show');
+  editingId = null;
+  render();
+}
+
+// =====================================================================
+//  init
+// =====================================================================
+loadStorage();
+render();
+
+// Add genre select change handler for "new genre" option
+['f-genre', 'e-genre'].forEach(gid => {
+  document.getElementById(gid).addEventListener('change', function() {
+    if (this.value === '__new__') {
+      const name = prompt('新しいジャンル名を入力してください');
+      if (name && name.trim()) {
+        const opt = document.createElement('option');
+        opt.value = name.trim();
+        opt.textContent = name.trim();
+        this.insertBefore(opt, this.lastElementChild);
+        this.value = name.trim();
+      } else {
+        this.value = currentTab;
+      }
+    }
+  });
+});
+</script>
+</body>
+</html>
