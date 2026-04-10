@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カード出品テンプレート</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Meiryo','Yu Gothic',sans-serif;background:#f5f7fa;color:#2d3748;min-height:100vh}
+.header{background:linear-gradient(135deg,#e53e3e,#c53030);color:white;padding:13px 18px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:17px;font-weight:bold}
+
+/* カテゴリーナビ（上段） */
+.cat-nav{background:#2d3748;display:flex;overflow-x:auto;gap:0}
+.cat-btn{padding:11px 16px;border:none;background:none;font-size:13px;cursor:pointer;color:#a0aec0;white-space:nowrap;border-bottom:3px solid transparent;transition:all .15s;flex-shrink:0}
+.cat-btn.active{color:white;border-bottom-color:#e53e3e;background:#3d4f63}
+.cat-btn:hover{color:white;background:#3d4f63}
+.cat-btn.cat-add{color:#68d391;border-left:1px solid #4a5568}
+.cat-btn.cat-util{color:#63b3ed}
+
+.cat-page{display:none;padding:14px}
+.cat-page.active{display:block}
+
+/* 検索 */
+.search-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.search-input{flex:1;min-width:180px;padding:9px 13px;border:2px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;font-family:inherit}
+.search-input:focus{border-color:#e53e3e}
+.type-filters{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.type-badge{padding:4px 11px;border-radius:100px;font-size:11px;font-weight:bold;cursor:pointer;border:2px solid transparent;transition:all .15s;white-space:nowrap}
+.type-badge:hover,.type-badge.active{transform:scale(1.05);box-shadow:0 2px 6px rgba(0,0,0,0.15)}
+.t-ドラゴン{background:#7b3fc4;color:white}.t-ノーマル{background:#a0aec0;color:white}
+.t-電気{background:#f6c90e;color:#2d3748}.t-闘{background:#c05621;color:white}
+.t-草{background:#38a169;color:white}.t-悪{background:#2d3748;color:white}
+.t-鋼{background:#718096;color:white}.t-水{background:#3182ce;color:white}
+.t-炎{background:#e53e3e;color:white}.t-超{background:#9f7aea;color:white}
+.t-all{background:#e2e8f0;color:#2d3748}
+
+/* グリッド */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.pokemon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.poke-card{background:white;border-radius:9px;padding:11px;cursor:pointer;border:2px solid #e2e8f0;transition:all .15s;position:relative}
+.poke-card:hover{border-color:#e53e3e;box-shadow:0 3px 10px rgba(229,62,62,0.15);transform:translateY(-1px)}
+.poke-card.selected{border-color:#e53e3e;background:#fff5f5}
+.poke-card.custom-card{border-style:dashed;border-color:#38a169}
+.poke-name{font-size:14px;font-weight:bold;margin-bottom:3px}
+.poke-evos{font-size:11px;color:#718096;line-height:1.4}
+.poke-type-badge{position:absolute;top:7px;right:7px;font-size:9px;padding:2px 5px;border-radius:100px;font-weight:bold}
+
+/* 詳細パネル */
+.detail-panel{background:white;border-radius:11px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.detail-name{font-size:22px;font-weight:bold;margin-bottom:3px}
+.detail-sub{font-size:12px;color:#718096;margin-bottom:4px}
+.detail-types{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+
+/* 複数画像ギャラリー */
+.img-gallery{background:#f0fff4;border:1px solid #c6f6d5;border-radius:9px;padding:12px;margin-bottom:12px}
+.img-gallery-title{font-size:11px;font-weight:bold;color:#276749;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.img-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+.img-thumb-box{position:relative;background:white;border:2px solid #c6f6d5;border-radius:8px;overflow:hidden;width:90px;flex-shrink:0}
+.img-thumb-box img{width:90px;height:90px;object-fit:contain;display:block}
+.img-thumb-actions{display:flex;justify-content:center;gap:4px;padding:4px 3px;background:#f0fff4}
+.img-add-btn{width:90px;height:90px;border:2px dashed #68d391;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:white;flex-shrink:0;transition:all .15s}
+.img-add-btn:hover{background:#f0fff4;border-color:#38a169}
+.img-add-label{font-size:11px;color:#38a169;font-weight:bold;text-align:center;line-height:1.4}
+
+/* 出品ボタン */
+.listing-section-label{font-size:11px;font-weight:bold;color:#718096;display:flex;align-items:center;gap:5px;margin-bottom:5px;margin-top:8px}
+.badge-jp{background:#e53e3e;color:white;font-size:10px;padding:1px 6px;border-radius:100px}
+.badge-ebay{background:#e6a817;color:#222;font-size:10px;padding:1px 6px;border-radius:100px}
+.listing-btns{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.listing-btn{padding:9px 14px;border-radius:7px;font-size:12px;font-weight:bold;cursor:pointer;border:none;transition:all .2s}
+.listing-btn.active-btn{box-shadow:0 0 0 3px rgba(0,0,0,0.2);transform:scale(1.04)}
+.btn-1000{background:#e53e3e;color:white}.btn-1000:hover{background:#c53030}
+.btn-single{background:#3182ce;color:white}.btn-single:hover{background:#2b6cb0}
+.btn-set{background:#38a169;color:white}.btn-set:hover{background:#276749}
+.btn-ebay-single{background:#e6a817;color:#222}.btn-ebay-single:hover{background:#c8920d}
+.btn-ebay-bulk{background:#1a9ee6;color:white}.btn-ebay-bulk:hover{background:#1480c2}
+.btn-ebay-set{background:#8b5cf6;color:white}.btn-ebay-set:hover{background:#7c3aed}
+.listing-divider{height:1px;background:#e2e8f0;margin:8px 0}
+
+/* テンプレート */
+.template-block{background:#f7fafc;border:1px solid #e2e8f0;border-radius:9px;padding:12px;margin-bottom:10px}
+.template-label{font-size:11px;font-weight:bold;color:#718096;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.template-text{font-size:13px;line-height:1.8;color:#2d3748;white-space:pre-wrap;word-break:break-all;background:white;padding:10px;border-radius:5px;border:1px solid #e2e8f0;max-height:280px;overflow-y:auto}
+.copy-btn{padding:4px 10px;border-radius:5px;font-size:11px;font-weight:bold;border:none;cursor:pointer;background:#38a169;color:white}
+.copy-btn:hover{background:#276749}.copy-btn.copied{background:#718096}
+
+/* 設定 */
+.settings-section{background:white;border-radius:11px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:14px}
+.settings-section h3{font-size:14px;font-weight:bold;margin-bottom:13px;display:flex;align-items:center;gap:7px}
+.setting-row{margin-bottom:11px}
+.setting-label{font-size:11px;font-weight:bold;color:#718096;margin-bottom:4px}
+.setting-input{width:100%;padding:9px;border:2px solid #e2e8f0;border-radius:7px;font-size:13px;font-family:inherit;outline:none;resize:vertical}
+.setting-input:focus{border-color:#e53e3e}
+.var-hint{font-size:10px;color:#a0aec0;margin-top:3px;line-height:1.6}
+
+/* 追加フォーム */
+.add-form{background:white;border-radius:11px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:14px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+@media(max-width:500px){.form-grid-2{grid-template-columns:1fr}}
+.form-field{display:flex;flex-direction:column;gap:3px}
+.form-label{font-size:11px;font-weight:bold;color:#4a5568}
+.form-input{padding:7px 9px;border:2px solid #e2e8f0;border-radius:7px;font-size:13px;font-family:inherit;outline:none}
+.form-input:focus{border-color:#38a169}
+.custom-item-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:7px;background:#f9fafb}
+.custom-item-row.illust-row{background:#fffff0;border-color:#fef3c7}
+
+/* 画像ツール */
+.tool-card{background:white;border-radius:11px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:14px}
+.canvas-wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.canvas-box{border:2px dashed #e2e8f0;border-radius:9px;overflow:hidden;background:#f9f9f9;min-width:200px;min-height:200px;display:flex;align-items:center;justify-content:center}
+canvas{max-width:100%;max-height:400px;border-radius:7px;display:none}
+.tool-controls{flex:1;min-width:190px}
+.tool-row{margin-bottom:12px}
+.tool-label{font-size:11px;font-weight:bold;color:#4a5568;margin-bottom:5px;display:block}
+input[type=color]{width:52px;height:32px;border-radius:5px;border:2px solid #e2e8f0;cursor:pointer;padding:2px}
+input[type=range]{width:100%;margin-top:3px}
+.color-presets{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.color-preset{width:26px;height:26px;border-radius:5px;cursor:pointer;border:2px solid transparent}
+.color-preset:hover{transform:scale(1.15);border-color:#718096}
+
+/* ヒント */
+.hint-box{background:#ebf8ff;border:1px solid #bee3f8;border-radius:7px;padding:11px 13px;font-size:12px;color:#2b6cb0;margin-bottom:12px;line-height:1.7}
+.hint-green{background:#f0fff4;border-color:#c6f6d5;color:#276749}
+
+/* ボタン */
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:bold;cursor:pointer;border:2px solid #e2e8f0;background:white;color:#4a5568}
+.btn:hover{border-color:#a0aec0}
+.btn-red{background:#e53e3e;color:white;border:none}.btn-red:hover{background:#c53030}
+.btn-green{background:#38a169;color:white;border:none}.btn-green:hover{background:#276749}
+.btn-blue{background:#3182ce;color:white;border:none}.btn-blue:hover{background:#2b6cb0}
+.btn-sm{padding:4px 9px;border-radius:5px;font-size:11px;font-weight:bold;border:none;cursor:pointer}
+.bg-green{background:#38a169;color:white}.bg-blue{background:#3182ce;color:white}
+.bg-purple{background:#8b5cf6;color:white}.bg-red{background:#e53e3e;color:white}
+.bg-gray{background:#718096;color:white}.bg-yellow{background:#e6a817;color:#222}
+.empty-state{text-align:center;padding:36px 16px;color:#a0aec0;font-size:14px}
+.count-badge{background:#e2e8f0;color:#4a5568;font-size:10px;padding:2px 7px;border-radius:100px;margin-left:5px}
+.save-btn{padding:9px 22px;background:#e53e3e;color:white;border:none;border-radius:7px;font-size:13px;font-weight:bold;cursor:pointer}
+.save-btn:hover{background:#c53030}
+
+/* カテゴリー管理モーダル */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:12px;padding:24px;max-width:400px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+.modal h3{font-size:16px;font-weight:bold;margin-bottom:16px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🃏 カード出品テンプレート</h1>
+  <div style="margin-left:auto;display:flex;gap:6px">
+    <a href="mu.html" style="color:white;font-size:11px;opacity:.8;text-decoration:none;background:rgba(255,255,255,0.15);padding:5px 10px;border-radius:6px;white-space:nowrap">む 在庫管理</a>
+    <a href="index.html" style="color:white;font-size:11px;opacity:.8;text-decoration:none;background:rgba(255,255,255,0.15);padding:5px 10px;border-radius:6px;white-space:nowrap">📚 セット本</a>
+  </div>
+</div>
+
+<div class="cat-nav" id="catNav">
+  <button class="cat-btn active" data-cat="pokemon" onclick="switchCat('pokemon')">🃏 ポケモン</button>
+  <button class="cat-btn" data-cat="illust" onclick="switchCat('illust')">🎨 イラストレーター</button>
+  <span id="customCatBtns"></span>
+  <button class="cat-btn cat-add" onclick="openAddCatModal()">＋ カテゴリー追加</button>
+  <button class="cat-btn cat-util" data-cat="imagetool" onclick="switchCat('imagetool')">🖼️ 画像ツール</button>
+  <button class="cat-btn cat-util" data-cat="settings" onclick="switchCat('settings')">⚙️ 設定</button>
+</div>
+
+<!-- ====== ポケモン ====== -->
+<div id="cat-pokemon" class="cat-page active">
+  <div class="hint-box">💡 タイプまたは検索窓でポケモンを絞り込み → カードをクリック → 出品種類ボタンを押す</div>
+  <div class="search-bar">
+    <input class="search-input" id="pkSearch" placeholder="🔍 ポケモン名・英語名で検索" oninput="renderPkGrid()"/>
+    <button class="btn" onclick="document.getElementById('pkSearch').value='';renderPkGrid()">クリア</button>
+  </div>
+  <div class="type-filters" id="typeFilters"></div>
+  <div class="two-col">
+    <div>
+      <div style="font-size:12px;color:#718096;margin-bottom:7px">一覧 <span id="pkCount" class="count-badge">0件</span></div>
+      <div class="pokemon-grid" id="pkGrid"></div>
+      <!-- ポケモン追加フォーム（折りたたみ） -->
+      <div style="margin-top:16px">
+        <button class="btn" onclick="toggleAddPoke()" id="togglePokeBtn">➕ 新しいポケモンを追加</button>
+        <div id="addPokeForm" style="display:none;margin-top:10px" class="add-form">
+          <div style="font-size:13px;font-weight:bold;margin-bottom:10px">新規ポケモン追加</div>
+          <div class="form-grid-2">
+            <div class="form-field"><label class="form-label">タイプ1 ※必須</label><input class="form-input" id="pk-t1" list="typeDatalist" placeholder="例：電気"/><datalist id="typeDatalist"></datalist></div>
+            <div class="form-field"><label class="form-label">タイプ2</label><input class="form-input" id="pk-t2" list="typeDatalist2" placeholder="省略可"/><datalist id="typeDatalist2"></datalist></div>
+            <div class="form-field"><label class="form-label">ポケモン名 ※必須</label><input class="form-input" id="pk-name" placeholder="例：ピカチュウ"/></div>
+            <div class="form-field"><label class="form-label">進化1</label><input class="form-input" id="pk-e1" placeholder="例：ライチュウ"/></div>
+            <div class="form-field"><label class="form-label">進化2</label><input class="form-input" id="pk-e2"/></div>
+            <div class="form-field"><label class="form-label">進化3</label><input class="form-input" id="pk-e3"/></div>
+            <div class="form-field" style="grid-column:1/-1"><label class="form-label">英語名（カンマ区切り）</label><input class="form-input" id="pk-en" placeholder="例：Pikachu、Raichu"/></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <button class="btn btn-green" onclick="addCustomPoke()">追加する</button>
+            <span id="pkAddMsg" style="font-size:12px;color:#38a169;display:none">✓ 追加しました</span>
+            <span id="pkAddErr" style="font-size:12px;color:#e53e3e;display:none"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="pkDetail"><div class="empty-state">👆 左のリストからポケモンを選んでください</div></div>
+  </div>
+</div>
+
+<!-- ====== イラストレーター ====== -->
+<div id="cat-illust" class="cat-page">
+  <div class="hint-box hint-green">💡 イラストレーターを検索・選択して出品テンプレートを呼び出せます。追加は下のフォームから。</div>
+  <div class="search-bar">
+    <input class="search-input" id="ilSearch" placeholder="🔍 イラストレーター名で検索" oninput="renderIlGrid()"/>
+    <button class="btn" onclick="document.getElementById('ilSearch').value='';renderIlGrid()">クリア</button>
+  </div>
+  <div class="two-col">
+    <div>
+      <div style="font-size:12px;color:#718096;margin-bottom:7px">一覧 <span id="ilCount" class="count-badge">0件</span></div>
+      <div class="pokemon-grid" id="ilGrid"></div>
+      <div style="margin-top:16px">
+        <button class="btn" onclick="toggleAddIllust()" id="toggleIlBtn">➕ 新しいイラストレーターを追加</button>
+        <div id="addIlForm" style="display:none;margin-top:10px" class="add-form">
+          <div style="font-size:13px;font-weight:bold;margin-bottom:10px">新規イラストレーター追加</div>
+          <div class="form-grid-2">
+            <div class="form-field"><label class="form-label">名前 ※必須</label><input class="form-input" id="il-name" placeholder="例：有田満弘"/></div>
+            <div class="form-field"><label class="form-label">英語名</label><input class="form-input" id="il-en" placeholder="例：Mitsuhiro Arita"/></div>
+            <div class="form-field" style="grid-column:1/-1"><label class="form-label">備考・関連作品など</label><input class="form-input" id="il-notes" placeholder="省略可"/></div>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <button class="btn btn-green" onclick="addCustomIllust()">追加する</button>
+            <span id="ilAddMsg" style="font-size:12px;color:#38a169;display:none">✓ 追加しました</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="ilDetail"><div class="empty-state">👆 左のリストからイラストレーターを選んでください</div></div>
+  </div>
+</div>
+
+<!-- ====== カスタムカテゴリー（動的生成） ====== -->
+<div id="customCatPages"></div>
+
+<!-- ====== 画像ツール ====== -->
+<div id="cat-imagetool" class="cat-page">
+  <div class="hint-box">💡 画像をアップロードして背景色を変更・ダウンロードできます。白背景除去スライダーで白い背景を透明にできます。</div>
+  <div class="tool-card">
+    <div style="font-size:14px;font-weight:bold;margin-bottom:12px">🖼️ 背景色変更ツール</div>
+    <div style="margin-bottom:12px">
+      <label><span class="btn btn-green" style="cursor:pointer">📁 画像をアップロード</span><input type="file" id="toolImgInput" accept="image/*" style="display:none" onchange="toolLoadImg(event)"/></label>
+      <span id="toolFileName" style="margin-left:8px;font-size:12px;color:#718096"></span>
+    </div>
+    <div class="canvas-wrap">
+      <div class="canvas-box" id="toolCanvasBox" style="width:280px;height:280px">
+        <span id="toolPlaceholder" style="color:#a0aec0;font-size:12px">画像をアップロード</span>
+        <canvas id="toolCanvas"></canvas>
+      </div>
+      <div class="tool-controls">
+        <div class="tool-row">
+          <label class="tool-label">🎨 背景色</label>
+          <input type="color" id="toolBgColor" value="#00b800" oninput="applyToolBg()"/>
+          <div class="color-presets">
+            <div class="color-preset" style="background:#00b800" title="緑" onclick="setToolColor('#00b800')"></div>
+            <div class="color-preset" style="background:#ffffff;border:1px solid #ddd" title="白" onclick="setToolColor('#ffffff')"></div>
+            <div class="color-preset" style="background:#000000" title="黒" onclick="setToolColor('#000000')"></div>
+            <div class="color-preset" style="background:#0047ab" title="青" onclick="setToolColor('#0047ab')"></div>
+            <div class="color-preset" style="background:#cc0000" title="赤" onclick="setToolColor('#cc0000')"></div>
+            <div class="color-preset" style="background:#f5c518" title="黄" onclick="setToolColor('#f5c518')"></div>
+            <div class="color-preset" style="background:#eeeeee;border:1px solid #ddd" title="薄灰" onclick="setToolColor('#eeeeee')"></div>
+          </div>
+        </div>
+        <div class="tool-row">
+          <label class="tool-label">白背景除去（しきい値: <span id="toolThreshVal">0</span>）</label>
+          <input type="range" id="toolThresh" min="0" max="120" value="0" oninput="document.getElementById('toolThreshVal').textContent=this.value;applyToolBg()"/>
+          <div style="font-size:10px;color:#a0aec0;margin-top:2px">0=除去しない、大きいほど広く除去</div>
+        </div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap">
+          <button class="btn-sm bg-blue" onclick="toolDownload()">⬇️ ダウンロード</button>
+          <button class="btn-sm bg-purple" onclick="toolSaveToItem()">💾 選択アイテムに保存</button>
+          <button class="btn-sm bg-gray" onclick="toolReset()">🔄 リセット</button>
+        </div>
+        <div id="toolSaveMsg" style="font-size:11px;color:#38a169;margin-top:6px;display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 設定 ====== -->
+<div id="cat-settings" class="cat-page">
+  <div class="hint-box">💡 変数：{ポケモン名} {英語名} {進化系} {タイプ} (ポケモン) ／ {名前} {英語名} {備考} (他カテゴリー)</div>
+  <div id="settingsContent"></div>
+  <div id="catMgmt" style="margin-top:4px"></div>
+  <div style="margin-top:14px">
+    <button class="save-btn" onclick="saveAllSettings()">💾 設定を保存</button>
+    <button class="btn" style="margin-left:8px" onclick="resetAllSettings()">↩️ デフォルトに戻す</button>
+    <span id="saveMsg" style="margin-left:10px;font-size:12px;color:#38a169;display:none">✓ 保存しました</span>
+  </div>
+</div>
+
+<!-- カテゴリー追加モーダル -->
+<div class="modal-overlay" id="addCatModal" onclick="if(event.target===this)closeAddCatModal()">
+  <div class="modal">
+    <h3>＋ 新しいカテゴリーを追加</h3>
+    <div class="form-field" style="margin-bottom:10px"><label class="form-label">カテゴリー名 ※必須</label><input class="form-input" id="newCatName" placeholder="例：キャラクター、スポーツカード"/></div>
+    <div class="form-field" style="margin-bottom:14px"><label class="form-label">アイコン（絵文字）</label><input class="form-input" id="newCatIcon" placeholder="例：⭐" maxlength="2" style="width:80px"/></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" onclick="addCustomCat()">作成する</button>
+      <button class="btn" onclick="closeAddCatModal()">キャンセル</button>
+    </div>
+    <div id="catAddErr" style="font-size:12px;color:#e53e3e;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// ポケモンデータ
+// ================================================================
+const POKEMON_RAW = [
+  ['ドラゴン','水','キュレム','','','','','Kyurem'],
+  ['ドラゴン','ノーマル','タツベイ','コモルー','ボーマンダ','','','Salamence、Shelgon、Bagon'],
+  ['ドラゴン','超','ドラメシヤ','ドロンチ','ドラパルト','','','Dragapult、Drakloak、Dreepy'],
+  ['ドラゴン','ノーマル','ミニリュウ','ハクリュー','カイリュウ','','','Dragonite、Dragonair、Dratini'],
+  ['ドラゴン','悪','ムゲンダイナ','','','','','Eternatus'],
+  ['ドラゴン','悪','モノズ','ジヘッド','サザンドラ','','','Hydreigon、Zweilous、Deino'],
+  ['ドラゴン','超','ラティアス','ラティオス','','','','Latios、Latias'],
+  ['ドラゴン','','オノンド','ハクリュー','オノノクス','','','Haxorus、Fraxure、Axew'],
+  ['ドラゴン','ノーマル','レックウザ','','','','','Rayquaza'],
+  ['ノーマル','','イーブイ','ブースター','シャワーズ','サンダース','エーフィ・ブラッキー・ニンフィア・リーフィア・グレイシア','Eevee、Vaporeon、Jolteon、Flareon、Espeon、Umbreon、Leafeon、Glaceon、Sylveon'],
+  ['ノーマル','','ゴンベ','カビゴン','','','','Munchlax、Snorlax'],
+  ['ノーマル','','チラーミィ','チラチーノ','','','','Minccino、Cinccino'],
+  ['ノーマル','','チルット','チルタリス','','','','Swablu、Altaria'],
+  ['ノーマル','','ニャース','ペルシアン','','','','Meowth、Persian'],
+  ['ノーマル','','ペラップ','','','','','Chatot'],
+  ['ノーマル','','メタモン','','','','','Ditto'],
+  ['ノーマル','','ピンプク','ラッキー','ハピナス','','','Happiny、Chansey、Blissey'],
+  ['ノーマル','','ルギア','','','','','Lugia'],
+  ['ノーマル','','ワッカネズミ','イッカネズミ','','','','Tandemaus、Maushold'],
+  ['電気','','エレズン','ストリンダー','','','','Toxel、Toxtricity'],
+  ['電気','','コリンク','ルクシオ','レントラー','','','Shinx、Luxio、Luxray'],
+  ['電気','','サンダー','','','','','Zapdos'],
+  ['電気','','ゼクロム','','','','レシラム','Zekrom、Reshiram'],
+  ['電気','','ゼラオラ','','','','','Zeraora'],
+  ['電気','','ピカチュウ','ライチュウ','','','','Pikachu、Raichu'],
+  ['電気','','ピカチュウ②','','','','','Pikachu'],
+  ['電気','','ミライドン','','','','コライドン','Miraidon、Koraidon'],
+  ['電気','','モルペコ','','','','','Morpeko'],
+  ['電気','','マイナン','プラスル','','','','Minun、Plusle'],
+  ['電気','','パモ','パモット','パーモット','','','Pawmi、Pawmo、Pawmot'],
+  ['電気','','ロトム','','','','','Rotom'],
+  ['電気','','ライコウ','','','','','Raikou'],
+  ['闘','','イワーク','ハガネール','','','','Onix、Steelix'],
+  ['闘','','グラードン','','','','','Groudon'],
+  ['闘','','コライドン','','','','','Koraidon'],
+  ['闘','','スナバァ','シロデスナ','','','','Sandygast、Palossand'],
+  ['闘','','ディアンシー','','','','','Diancie'],
+  ['闘','','ナックラー','ビブラーバ','フライゴン','','','Trapinch、Vibrava、Flygon'],
+  ['闘','','フカマル','ガバイト','ガブリアス','','','Garchomp、Gabite、Gible'],
+  ['闘','','ヨーギラス','サナギラス','バンギラス','','','Tyranitar、Pupitar、Larvitar'],
+  ['闘','','リオル','ルカリオ','','','','Lucario、Riolu'],
+  ['草','','キモリ','ジュプトル','ジュカイン','','','Treecko、Grovyle、Sceptile'],
+  ['草','','サルノリ','バチンキー','ゴリランダー','','','Grookey、Thwackey、Rillaboom'],
+  ['草','','シェイミ','','','','','Shaymin'],
+  ['草','','シキジカ','メブキジカ','','','','Deerling、Sawsbuck'],
+  ['草','','ストライク','ハッサム','','','','Scyther、Scizor'],
+  ['草','','セレビー','','','','','Celebi'],
+  ['草','','チコリータ','ベイリーフ','メガニウム','','','Chikorita、Bayleef、Meganium'],
+  ['草','','ツタージャ','ジャノビー','ジャローダ','','','Snivy、Servine、Serperior'],
+  ['草','','ナエトル','ハヤシガメ','ドダイトス','','','Turtwig、Grotle、Torterra'],
+  ['草','','ニャオハ','ニャローテ','マスカーニャ','','','Sprigatito、Floragato、Meowscarada'],
+  ['草','','フシギダネ','フシギソウ','フシギバナ','','','Bulbasaur、Ivysaur、Venusaur'],
+  ['草','','モクロー','フクスロー','ジュナイパー','','','Rowlet、Dartrix、Decidueye'],
+  ['悪','','アブソル','','','','','Absol'],
+  ['悪','','イベルタル','','','','','Yveltal'],
+  ['悪','','ウパー（パルデア）','ヌオー（パルデア）','パルデアドオー','','','Wooper、Quagsire、Clodsire'],
+  ['悪','','ゾロア','ゾロアーク','','','','Zorua、Zoroark'],
+  ['悪','','ダークライ','','','','','Darkrai'],
+  ['悪','','チョロネコ','レパルダス','','','','Purrloin、Liepard'],
+  ['悪','','ニューラ','マニューラ','','','','Sneasel、Weavile'],
+  ['鋼','','クチート','','','','','Mawile'],
+  ['鋼','','ザシアン','ザマゼンタ','','','','Zacian、Zamazenta'],
+  ['鋼','','ジラーチ','','','','','Jirachi'],
+  ['鋼','','ダンバル','メタング','メタグロス','','','Metagross、Metang、Beldum'],
+  ['鋼','','ディアルガ','','','','','Dialga'],
+  ['水','','アシマリ','オシャマリ','アシレーヌ','','','Popplio、Brionne、Primarina'],
+  ['水','','スイクン','ウネルミナモ','','','','Suicune、Walking Wake'],
+  ['水','','カイオーガ','','','','','Kyogre'],
+  ['水','','クワッス','ウェルカモ','ウェーニバル','','','Quaxly、Quaxwell、Quaquaval'],
+  ['水','','ケルディオ','','','','','Keldeo'],
+  ['水','','ケロマツ','ゲコガシラ','ゲッコウガ','','','Froakie、Frogadier、Greninja'],
+  ['水','','コイキング','ギャラドス','','','','Magikarp、Gyarados'],
+  ['水','','コオリッポ','','','','','Eiscue'],
+  ['水','','パルキア','','','','ディアルガ','Palkia、Dialga'],
+  ['水','','ブイゼル','フローゼル','','','','Buizel、Floatzel'],
+  ['水','','フリーザー','','','','サンダー・ファイアー','Articuno、Zapdos、Moltres'],
+  ['水','','ポッチャマ','ポッタイシ','エンペルト','','','Piplup、Prinplup、Empoleon'],
+  ['水','','フィオネ','マナフィ','','','','Phione、Manaphy'],
+  ['水','','ミズゴロウ','ヌマクロー','ラグラージ','','','Mudkip、Marshtomp、Swampert'],
+  ['水','','ミジュマル','フタチマル','ダイケンキ','','','Oshawott、Dewott、Samurott'],
+  ['水','','メッソン','ジメレオン','インテレオン','','','Sobble、Drizzile、Inteleon'],
+  ['水','','ヤドン','ヤドラン','ヤドキング','','','Slowpoke、Slowbro、Slowking'],
+  ['水','','ラプラス','','','','','Lapras'],
+  ['水','','ワニノコ','アリゲイツ','オーダイル','','','Totodile、Croconaw、Feraligatr'],
+  ['水','','ゼニガメ','カメール','カメックス','','','Squirtle、Wartortle、Blastoise'],
+  ['水','','コダック','ゴルダック','','','','Psyduck、Golduck'],
+  ['水','','ミロカロス','','','','','Milotic'],
+  ['炎','','エンテイ','','','','','Entei'],
+  ['炎','','アチャモ','ワカシャモ','バシャーモ','','','Torchic、Combusken、Blaziken'],
+  ['炎','','ガーディ','ウインディ','','','','Growlithe、Arcanine'],
+  ['炎','','カルボウ','グレンアルマ','ソウブレイズ','','','Charcadet、Armarouge、Ceruledge'],
+  ['炎','','ニャビー','ニャヒート','ガオガエン','','','Litten、Torracat、Incineroar'],
+  ['炎','','ヒコザル','モウカザル','ゴウカザル','','','Chimchar、Monferno、Infernape'],
+  ['炎','','ヒトカゲ','リザード','リザードン','','','Charmander、Charmeleon、Charizard'],
+  ['炎','','ヒバニー','ラビフット','エースバーン','','','Scorbunny、Raboot、Cinderace'],
+  ['炎','','ヒトモシ','ランプラー','シャンデラ','','','Litwick、Lampent、Chandelure'],
+  ['炎','','ファイアー','','','','','Moltres'],
+  ['炎','','フォッコ','テールナー','マフォクシー','','','Fennekin、Braixen、Delphox'],
+  ['炎','','ホウオウ','','','','','Ho-oh'],
+  ['炎','','ヒノアラシ','マグマラシ','バクフーン','','','Cyndaquil、Quilava、Typhlosion'],
+  ['炎','','ポカブ','チャオブー','エンブオー','','','Tepig、Pignite、Emboar'],
+  ['炎','','ホゲータ','アチゲータ','ラウドボーン','','','Fuecoco、Crocalor、Skeledirge'],
+  ['炎','','ポニータ','ギャロップ','','','','Ponyta、Rapidash'],
+  ['炎','','ビクティニ','','','','','Victini'],
+  ['炎','','ロコン','キュウコン','','','','Vulpix、Ninetales'],
+  ['超','','カゲボウズ','ジュペッタ','','','','Shuppet、Banette'],
+  ['超','','カヌチャン','ナカヌチャン','デカヌチャン','','','Tinkatink、Tinkatuff、Tinkaton'],
+  ['超','','クレセリア','','','','','Cresselia'],
+  ['超','','ゴース','ゴースト','ゲンガー','','','Gengar、Haunter、Gastly'],
+  ['超','','コレクレー','サーフゴー','','','','Gimmighoul、Gholdengo'],
+  ['超','','ゼルネアス','','','','','Xerneas'],
+  ['超','','ディアンシー','','','','','Diancie'],
+  ['超','','ソーナノ','ソーナンス','','','','Wynaut、Wobbuffet'],
+  ['超','','デオキシス','','','','','Deoxys'],
+  ['超','','デデンネ','','','','','Dedenne'],
+  ['超','','トゲピー','トゲチック','トゲキッス','','','Togekiss、Togetic、Togepi'],
+  ['超','','ニャスパー','ニャオニクス','','','','Espurr、Meowstic'],
+  ['超','','ピィ','ピッピ','ピクシー','','','Cleffa、Clefairy、Clefable'],
+  ['超','','アンノーン','','','','','Unown'],
+  ['超','','ヒラヒナ','クエスパトラ','','','','Flittle、Espathra'],
+  ['超','','フワンテ','フワライド','','','','Drifloon、Drifblim'],
+  ['超','','プリン','プクリン','','','','Jigglypuff、Wigglytuff'],
+  ['超','','マホミル','マホイップ','','','','Milcery、Alcremie'],
+  ['超','','マリル','マリルリ','','','','Marill、Azumarill'],
+  ['超','','ミカルゲ','','','','','Spiritomb'],
+  ['超','','ミミッキュ','','','','','Mimikyu'],
+  ['超','','ミュウ','ミュウツー','','','','Mew、Mewtwo'],
+  ['超','','ムウマ','ムウマージ','ハバタクカミ','','','Misdreavus、Mismagius、Flutter Mane'],
+  ['超','','ヤミラミ','','','','','Sableye'],
+  ['超','','アグノム','エムリット','ユクシー','','','Azelf、Mesprit、Uxie'],
+  ['超','','ヨマワル','サマヨール','ヨノワール','','','Duskull、Dusclops、Dusknoir'],
+  ['超','','ラルトス','キルリア','サーナイト','','','Ralts、Kirlia、Gardevoir'],
+  ['超','','ギラティナ','','','','','Giratina'],
+  ['超','悪','まーいーか','カラマネロ','','','','Inkay、Malamar'],
+];
+
+// ================================================================
+// イラストレーターデータ
+// ================================================================
+const ILLUST_BUILTIN = [
+  {name:'杉森建',english:'Ken Sugimori',notes:'Game Freak・初代デザイナー'},
+  {name:'有田満弘',english:'Mitsuhiro Arita',notes:''},
+  {name:'西田敦子',english:'Atsuko Nishida',notes:''},
+  {name:'5ban Graphics',english:'5ban Graphics',notes:''},
+  {name:'TOKIYA',english:'TOKIYA',notes:''},
+  {name:'sowsow',english:'sowsow',notes:''},
+  {name:'Yuu Nishida',english:'Yuu Nishida',notes:''},
+  {name:'Satoshi Nakai',english:'Satoshi Nakai',notes:''},
+  {name:'Kouki Saitou',english:'Kouki Saitou',notes:''},
+  {name:'Shibuzoh.',english:'Shibuzoh.',notes:''},
+  {name:'Sekio',english:'Sekio',notes:''},
+  {name:'kantaro',english:'kantaro',notes:''},
+  {name:'Tomokazu Komiya',english:'Tomokazu Komiya',notes:''},
+  {name:'Tetra',english:'Tetra',notes:''},
+  {name:'Clementina',english:'Clementina',notes:''},
+  {name:'Calum Alexander Watt',english:'Calum Alexander Watt',notes:''},
+  {name:'Kagemaru Himeno',english:'Kagemaru Himeno',notes:''},
+  {name:'Naoyo Kimura',english:'Naoyo Kimura',notes:''},
+  {name:'Ryo Ueda',english:'Ryo Ueda',notes:''},
+  {name:'Yuka Morii',english:'Yuka Morii',notes:''},
+  {name:'Kizuki Arata',english:'Kizuki Arata',notes:''},
+  {name:'Ryota Murayama',english:'Ryota Murayama',notes:''},
+  {name:'Masakazu Fukuda',english:'Masakazu Fukuda',notes:''},
+];
+
+// ================================================================
+// デフォルトテンプレート
+// ================================================================
+const DEFAULT_TPL = {
+  pokemon: {
+    '1000枚': {label:'1000枚出品',icon:'📦',color:'btn-1000',platform:'jp',
+      title:'ポケモンカード {ポケモン名} {英語名} 1000枚 まとめ売り 大量',
+      desc:`ポケモンカード {ポケモン名}（{英語名}）のカードを大量にまとめてお届けします。\n\n【収録ポケモン】\n{進化系}\n\n【商品説明】\n・コモン〜レアまで様々なカードが含まれます\n・まとめ売りのため状態は様々です\n・写真はイメージです\n\n【注意事項】\n・傷・折れ・汚れ等がある場合があります\n・返品・交換はご遠慮いただいております\n・ご不明な点はご購入前にお問い合わせください`},
+    '単品': {label:'単品出品',icon:'🃏',color:'btn-single',platform:'jp',
+      title:'ポケモンカード {ポケモン名} {英語名} 単品',
+      desc:`ポケモンカード {ポケモン名}（{英語名}）の単品販売です。\n\n【商品詳細】\nポケモン名：{ポケモン名}\n英語名：{英語名}\nタイプ：{タイプ}\n\n【注意事項】\n・カードの状態は写真でご確認ください\n・返品・交換はご遠慮いただいております\n・ご不明な点はご購入前にお問い合わせください`},
+    'セット': {label:'セット出品',icon:'✨',color:'btn-set',platform:'jp',
+      title:'ポケモンカード {進化系} 進化系セット まとめ',
+      desc:`ポケモンカード 進化系セットの販売です。\n\n【セット内容】\n{進化系}\n\n【英語名】\n{英語名}\n\n【タイプ】\n{タイプ}\n\n【注意事項】\n・セット内容は写真でご確認ください\n・状態は様々です\n・返品・交換はご遠慮いただいております`},
+    'ebay-single': {label:'eBay 単品',icon:'🌐',color:'btn-ebay-single',platform:'ebay',
+      title:'Pokemon Card {英語名} / {ポケモン名} Japanese Single - {タイプ} Type',
+      desc:`◆ Pokemon Card - Single Card (Japanese)\n\nCard Name: {ポケモン名} / {英語名}\nType: {タイプ}\nEvolution Line: {進化系}\nLanguage: Japanese\n\n◆ Condition\nPlease check all photos carefully before purchasing.\n\n◆ Shipping\n・Ships from Japan\n・Carefully packed to prevent damage\n・Tracked shipping available\n\n◆ Notes\n・Returns are not accepted\n・Please message with any questions before purchasing`},
+    'ebay-bulk': {label:'eBay 1000枚',icon:'🌐',color:'btn-ebay-bulk',platform:'ebay',
+      title:'1000x Japanese Pokemon Cards Lot {英語名} Bulk Mixed Holo Rare Common',
+      desc:`◆ 1000 Japanese Pokemon Cards - Bulk Lot\n\nFeatured: {ポケモン名} / {英語名}\nType: {タイプ} ／ Evolution: {進化系}\nLanguage: Japanese\n\n◆ What's Included\n・1000 assorted Pokemon cards\n・Mix of Common, Uncommon, Rare and Holo\n・Various sets and generations\n\n◆ Shipping\n・Ships from Japan\n・Securely packaged\n・Tracked international shipping available\n\n◆ Notes\n・Returns are not accepted\n・Perfect for collection starters or deck building`},
+    'ebay-set': {label:'eBay セット',icon:'🌐',color:'btn-ebay-set',platform:'ebay',
+      title:'Pokemon Card Evolution Set {英語名} Complete Line Japanese - {進化系}',
+      desc:`◆ Pokemon Card - Complete Evolution Set (Japanese)\n\nPokemon: {ポケモン名} / {英語名}\nType: {タイプ}\nFull Evolution: {進化系}\n\n◆ Condition\nPlease check all photos carefully.\n\n◆ Shipping\n・Ships from Japan\n・Each card individually sleeved\n・Tracked shipping available\n\n◆ Notes\n・Returns are not accepted\n・Message us for any questions before buying!`}
+  },
+  illust: {
+    '単品': {label:'単品出品',icon:'🃏',color:'btn-single',platform:'jp',
+      title:'ポケモンカード {名前}（{英語名}）イラスト 単品',
+      desc:`ポケモンカード {名前} ({英語名}) イラストの単品販売です。\n\n【商品詳細】\nイラストレーター：{名前} / {英語名}\n{備考}\n\n【注意事項】\n・カードの状態は写真でご確認ください\n・返品・交換はご遠慮いただいております\n・ご不明な点はご購入前にお問い合わせください`},
+    'まとめ': {label:'まとめ出品',icon:'✨',color:'btn-set',platform:'jp',
+      title:'ポケモンカード {名前} イラスト まとめ売り セット',
+      desc:`ポケモンカード {名前} ({英語名}) イラストのまとめ売りです。\n\n【商品詳細】\nイラストレーター：{名前} / {英語名}\n{備考}\n\n【注意事項】\n・枚数・内容は写真でご確認ください\n・状態は様々です\n・返品・交換はご遠慮いただいております`},
+    '1000枚': {label:'1000枚出品',icon:'📦',color:'btn-1000',platform:'jp',
+      title:'ポケモンカード {名前} イラスト 1000枚 まとめ売り 大量',
+      desc:`ポケモンカード {名前} ({英語名}) イラストのカードを大量にまとめてお届けします。\n\n【注意事項】\n・コモン〜レアまで様々なカードが含まれます\n・状態は様々です\n・写真はイメージです\n・返品・交換はご遠慮いただいております`},
+    'ebay-single': {label:'eBay 単品',icon:'🌐',color:'btn-ebay-single',platform:'ebay',
+      title:'Pokemon Card {英語名} Artist Japanese Single',
+      desc:`◆ Pokemon Card by {英語名} - Single (Japanese)\n\nIllustrator: {名前} / {英語名}\n{備考}\nLanguage: Japanese\n\n◆ Condition\nPlease check all photos carefully before purchasing.\n\n◆ Shipping\n・Ships from Japan\n・Carefully packed\n・Tracked shipping available\n\n◆ Notes\n・Returns are not accepted\n・Message us before purchasing`},
+    'ebay-bulk': {label:'eBay まとめ',icon:'🌐',color:'btn-ebay-bulk',platform:'ebay',
+      title:'Pokemon Card Lot by {英語名} Japanese Bulk Mixed Art Collection',
+      desc:`◆ Pokemon Cards by {英語名} - Bulk Lot\n\nIllustrator: {名前} / {英語名}\n{備考}\nLanguage: Japanese\n\n◆ Contents\n・Multiple cards featuring artwork by {英語名}\n・Various sets and rarities\n\n◆ Shipping\n・Ships from Japan\n・Securely packaged\n\n◆ Notes\n・Returns are not accepted\n・Message for details before buying`}
+  }
+};
+
+// ================================================================
+// ストレージ管理
+// ================================================================
+function lsGet(k, def=null){ try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch{return def} }
+function lsSet(k,v){ try{localStorage.setItem(k,JSON.stringify(v))}catch{alert('保存容量が不足しています。不要な画像を削除してください。')} }
+
+// 画像（複数）
+function getImgs(cat, name){ return lsGet(`imgs_${cat}_${name}`, []) }
+function saveImgs(cat, name, arr){ lsSet(`imgs_${cat}_${name}`, arr) }
+function addImg(cat, name, base64){
+  const arr = getImgs(cat, name);
+  arr.push({id: Date.now().toString(36)+Math.random().toString(36).slice(2), data: base64});
+  saveImgs(cat, name, arr);
+}
+function deleteImg(cat, name, imgId){
+  const arr = getImgs(cat, name).filter(x=>x.id!==imgId);
+  saveImgs(cat, name, arr);
+}
+
+// カスタムデータ
+function getCustomPoke(){ return lsGet('customPokemon', []) }
+function saveCustomPoke(a){ lsSet('customPokemon', a) }
+function getCustomIllust(){ return lsGet('customIllust', []) }
+function saveCustomIllust(a){ lsSet('customIllust', a) }
+function getCustomCats(){ return lsGet('customCats', []) }
+function saveCustomCats(a){ lsSet('customCats', a) }
+function getCustomCatItems(catId){ return lsGet(`catItems_${catId}`, []) }
+function saveCustomCatItems(catId, a){ lsSet(`catItems_${catId}`, a) }
+
+// テンプレート
+let templates = {};
+function loadTemplates(){
+  const saved = lsGet('allTemplates', null);
+  if(saved){ templates = {...JSON.parse(JSON.stringify(DEFAULT_TPL)), ...saved}; }
+  else { templates = JSON.parse(JSON.stringify(DEFAULT_TPL)); }
+  // カスタムカテゴリーのテンプレートも追加
+  getCustomCats().forEach(cat=>{
+    if(!templates[cat.id]) templates[cat.id] = defaultCatTemplate(cat);
+  });
+}
+function defaultCatTemplate(cat){
+  return {
+    '単品': {label:'単品出品',icon:'🃏',color:'btn-single',platform:'jp',
+      title:`${cat.label} {名前}（{英語名}）単品`,
+      desc:`${cat.label} {名前}（{英語名}）の単品販売です。\n\n{備考}\n\n【注意事項】\n・状態は写真でご確認ください\n・返品・交換はご遠慮いただいております`},
+    'まとめ': {label:'まとめ出品',icon:'✨',color:'btn-set',platform:'jp',
+      title:`${cat.label} {名前} まとめ セット`,
+      desc:`${cat.label} {名前} のまとめ売りです。\n\n{備考}\n\n【注意事項】\n・内容は写真でご確認ください\n・状態は様々です\n・返品・交換はご遠慮いただいております`},
+    'ebay-single': {label:'eBay 単品',icon:'🌐',color:'btn-ebay-single',platform:'ebay',
+      title:`${cat.label} {英語名} Japanese Single`,
+      desc:`◆ ${cat.label} - {名前} / {英語名}\n{備考}\n\n◆ Shipping\n・Ships from Japan\n・Returns are not accepted`}
+  };
+}
+
+// ================================================================
+// ポケモン関連
+// ================================================================
+let allPokemon = [];
+let pkActiveType = 'all';
+let selectedPk = null;
+let pkActiveTpl = null;
+
+function buildPokemon(){
+  const custom = getCustomPoke();
+  allPokemon = [
+    ...POKEMON_RAW.map((r,i)=>({
+      id:i, isCustom:false, type1:r[0], type2:r[1], name:r[2],
+      members:[r[2],r[3],r[4],r[5]].filter(x=>x&&x.trim()),
+      english:r[7]?r[7].split(/[、,]/).map(x=>x.trim()).filter(x=>x):[],
+      related:r[6]?r[6].split(/[・、,]/).map(x=>x.trim()).filter(x=>x):[]
+    })),
+    ...custom.map((r,i)=>({
+      id:10000+i, isCustom:true, type1:r[0], type2:r[1], name:r[2],
+      members:[r[2],r[3],r[4],r[5]].filter(x=>x&&x.trim()),
+      english:r[7]?r[7].split(/[、,]/).map(x=>x.trim()).filter(x=>x):[],
+      related:[]
+    }))
+  ];
+}
+
+function getPkTypes(){ return [...new Set(allPokemon.map(p=>p.type1).filter(x=>x))].sort() }
+
+function renderTypeFilters(){
+  const types = getPkTypes();
+  let h = `<span class="type-badge t-all ${pkActiveType==='all'?'active':''}" onclick="setPkType('all')">すべて</span>`;
+  types.forEach(t=>{ h+=`<span class="type-badge t-${t} ${pkActiveType===t?'active':''}" onclick="setPkType('${t}')">${t}</span>`; });
+  document.getElementById('typeFilters').innerHTML = h;
+  // datalist更新
+  const dl = document.getElementById('typeDatalist');
+  const dl2 = document.getElementById('typeDatalist2');
+  if(dl) dl.innerHTML = types.map(t=>`<option value="${t}">`).join('');
+  if(dl2) dl2.innerHTML = types.map(t=>`<option value="${t}">`).join('');
+}
+
+function setPkType(t){ pkActiveType=t; renderTypeFilters(); renderPkGrid(); }
+
+function renderPkGrid(){
+  const q = document.getElementById('pkSearch').value.trim().toLowerCase();
+  let list = allPokemon.filter(p=>{
+    const typeOk = pkActiveType==='all'||p.type1===pkActiveType||p.type2===pkActiveType;
+    if(!typeOk) return false;
+    if(!q) return true;
+    return p.members.some(m=>m.includes(q))||p.english.some(e=>e.toLowerCase().includes(q));
+  }).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  document.getElementById('pkCount').textContent = list.length+'件';
+  document.getElementById('pkGrid').innerHTML = list.map(p=>`
+    <div class="poke-card ${selectedPk?.id===p.id?'selected':''} ${p.isCustom?'custom-card':''}" onclick="selectPk(${p.id})">
+      <span class="poke-type-badge type-badge t-${p.type1}">${p.type1}</span>
+      <div class="poke-name">${p.name}${p.isCustom?' <span style="color:#38a169;font-size:10px">★</span>':''}</div>
+      <div class="poke-evos">${p.members.slice(1).join('/')||'単体'}</div>
+    </div>`).join('');
+}
+
+function selectPk(id){
+  selectedPk = allPokemon.find(p=>p.id===id);
+  pkActiveTpl = null;
+  renderPkGrid();
+  renderPkDetail();
+}
+
+function renderPkDetail(){
+  const el = document.getElementById('pkDetail');
+  if(!selectedPk){ el.innerHTML='<div class="empty-state">👆 左のリストからポケモンを選んでください</div>'; return; }
+  const p = selectedPk;
+  const typeHtml = [p.type1,p.type2].filter(x=>x).map(t=>`<span class="type-badge t-${t}">${t}</span>`).join('');
+  const imgs = getImgs('pokemon', p.name);
+
+  let h = `<div class="detail-panel">
+    <div class="detail-name">${p.name}</div>
+    <div class="detail-sub">${p.english.join(' / ')||'-'}</div>
+    <div class="detail-sub">${p.members.join(' / ')}</div>
+    <div class="detail-types">${typeHtml}</div>
+    ${p.related.length?`<div style="font-size:11px;color:#718096;margin-bottom:8px">関連：${p.related.join('・')}</div>`:''}
+    ${renderImgGallery('pokemon', p.name, imgs)}`;
+
+  // JP / eBay ボタン
+  const jpKeys = Object.keys(templates.pokemon||{}).filter(k=>templates.pokemon[k].platform==='jp');
+  const ebKeys = Object.keys(templates.pokemon||{}).filter(k=>templates.pokemon[k].platform==='ebay');
+  h += `<div class="listing-section-label"><span class="badge-jp">JP</span> 国内出品</div><div class="listing-btns">`;
+  jpKeys.forEach(k=>{ const t=templates.pokemon[k]; h+=`<button class="listing-btn ${t.color} ${pkActiveTpl===k?'active-btn':''}" onclick="setPkTpl('${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div><div class="listing-divider"></div><div class="listing-section-label"><span class="badge-ebay">eBay</span> eBay出品</div><div class="listing-btns">`;
+  ebKeys.forEach(k=>{ const t=templates.pokemon[k]; h+=`<button class="listing-btn ${t.color} ${pkActiveTpl===k?'active-btn':''}" onclick="setPkTpl('${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div>`;
+
+  if(pkActiveTpl && templates.pokemon[pkActiveTpl]){
+    const t = templates.pokemon[pkActiveTpl];
+    const vars = {ポケモン名:p.name, 進化系:p.members.join('・'), 英語名:p.english.join('・'), タイプ:[p.type1,p.type2].filter(x=>x).join('・')};
+    const title = fillTpl(t.title, vars), desc = fillTpl(t.desc, vars);
+    h += renderTplOutput(title, desc);
+  } else {
+    h += `<div style="color:#a0aec0;font-size:12px;padding:8px">👆 出品種類ボタンを押してください</div>`;
+  }
+  h += `</div>`;
+  el.innerHTML = h;
+}
+function setPkTpl(k){ pkActiveTpl=k; renderPkDetail(); }
+
+function toggleAddPoke(){
+  const f = document.getElementById('addPokeForm');
+  f.style.display = f.style.display==='none'?'block':'none';
+  document.getElementById('togglePokeBtn').textContent = f.style.display==='none'?'➕ 新しいポケモンを追加':'▲ 閉じる';
+}
+
+function addCustomPoke(){
+  const t1=document.getElementById('pk-t1').value.trim();
+  const name=document.getElementById('pk-name').value.trim();
+  if(!t1||!name){ showMsg('pkAddErr','タイプ1と名前は必須です'); return; }
+  const arr = getCustomPoke();
+  arr.push([t1,document.getElementById('pk-t2').value.trim(),name,document.getElementById('pk-e1').value.trim(),document.getElementById('pk-e2').value.trim(),document.getElementById('pk-e3').value.trim(),'',document.getElementById('pk-en').value.trim()]);
+  saveCustomPoke(arr);
+  ['pk-t1','pk-t2','pk-name','pk-e1','pk-e2','pk-e3','pk-en'].forEach(id=>{ const e=document.getElementById(id);if(e)e.value=''; });
+  buildPokemon(); renderTypeFilters(); renderPkGrid();
+  showMsg('pkAddMsg','✓ 追加しました');
+}
+
+// ================================================================
+// イラストレーター関連
+// ================================================================
+let allIllust = [];
+let selectedIl = null;
+let ilActiveTpl = null;
+
+function buildIllust(){
+  const custom = getCustomIllust();
+  allIllust = [
+    ...ILLUST_BUILTIN.map((x,i)=>({id:i, isCustom:false, ...x})),
+    ...custom.map((x,i)=>({id:10000+i, isCustom:true, ...x}))
+  ];
+}
+
+function renderIlGrid(){
+  const q = document.getElementById('ilSearch').value.trim().toLowerCase();
+  const list = allIllust.filter(x=>!q||x.name.toLowerCase().includes(q)||x.english.toLowerCase().includes(q))
+    .sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  document.getElementById('ilCount').textContent = list.length+'件';
+  document.getElementById('ilGrid').innerHTML = list.map(x=>`
+    <div class="poke-card ${selectedIl?.id===x.id?'selected':''} ${x.isCustom?'custom-card':''}" onclick="selectIl(${x.id})">
+      <div class="poke-name">${x.name}${x.isCustom?' <span style="color:#38a169;font-size:10px">★</span>':''}</div>
+      <div class="poke-evos">${x.english||''}</div>
+    </div>`).join('');
+}
+
+function selectIl(id){
+  selectedIl = allIllust.find(x=>x.id===id);
+  ilActiveTpl = null;
+  renderIlGrid();
+  renderIlDetail();
+}
+
+function renderIlDetail(){
+  const el = document.getElementById('ilDetail');
+  if(!selectedIl){ el.innerHTML='<div class="empty-state">👆 左のリストからイラストレーターを選んでください</div>'; return; }
+  const x = selectedIl;
+  const imgs = getImgs('illust', x.name);
+  const tplMap = templates.illust || {};
+  const jpKeys = Object.keys(tplMap).filter(k=>tplMap[k].platform==='jp');
+  const ebKeys = Object.keys(tplMap).filter(k=>tplMap[k].platform==='ebay');
+
+  let h = `<div class="detail-panel">
+    <div class="detail-name">${x.name}</div>
+    <div class="detail-sub">${x.english||''}</div>
+    ${x.notes?`<div class="detail-sub" style="margin-top:2px">${x.notes}</div>`:''}
+    ${renderImgGallery('illust', x.name, imgs)}
+    <div class="listing-section-label"><span class="badge-jp">JP</span> 国内出品</div>
+    <div class="listing-btns">`;
+  jpKeys.forEach(k=>{ const t=tplMap[k]; h+=`<button class="listing-btn ${t.color} ${ilActiveTpl===k?'active-btn':''}" onclick="setIlTpl('${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div><div class="listing-divider"></div><div class="listing-section-label"><span class="badge-ebay">eBay</span> eBay出品</div><div class="listing-btns">`;
+  ebKeys.forEach(k=>{ const t=tplMap[k]; h+=`<button class="listing-btn ${t.color} ${ilActiveTpl===k?'active-btn':''}" onclick="setIlTpl('${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div>`;
+
+  if(ilActiveTpl && tplMap[ilActiveTpl]){
+    const t = tplMap[ilActiveTpl];
+    const vars = {名前:x.name, 英語名:x.english||'', 備考:x.notes||''};
+    h += renderTplOutput(fillTpl(t.title, vars), fillTpl(t.desc, vars));
+  } else {
+    h += `<div style="color:#a0aec0;font-size:12px;padding:8px">👆 出品種類ボタンを押してください</div>`;
+  }
+  h += `</div>`;
+  el.innerHTML = h;
+}
+function setIlTpl(k){ ilActiveTpl=k; renderIlDetail(); }
+
+function toggleAddIllust(){
+  const f = document.getElementById('addIlForm');
+  f.style.display = f.style.display==='none'?'block':'none';
+  document.getElementById('toggleIlBtn').textContent = f.style.display==='none'?'➕ 新しいイラストレーターを追加':'▲ 閉じる';
+}
+
+function addCustomIllust(){
+  const name = document.getElementById('il-name').value.trim();
+  if(!name){ return; }
+  const arr = getCustomIllust();
+  arr.push({name, english:document.getElementById('il-en').value.trim(), notes:document.getElementById('il-notes').value.trim()});
+  saveCustomIllust(arr);
+  ['il-name','il-en','il-notes'].forEach(id=>{ const e=document.getElementById(id);if(e)e.value=''; });
+  buildIllust(); renderIlGrid();
+  showMsg('ilAddMsg','✓ 追加しました');
+}
+
+// ================================================================
+// カスタムカテゴリー
+// ================================================================
+let customCatSelected = {}; // catId -> selected item
+let customCatActiveTpl = {}; // catId -> active template key
+
+function buildCustomCatUI(){
+  const cats = getCustomCats();
+  // ナビボタン
+  document.getElementById('customCatBtns').innerHTML = cats.map(c=>`
+    <button class="cat-btn" data-cat="${c.id}" onclick="switchCat('${c.id}')">${c.icon||'📂'} ${c.label}</button>`).join('');
+  // ページ
+  const container = document.getElementById('customCatPages');
+  container.innerHTML = cats.map(c=>`
+    <div id="cat-${c.id}" class="cat-page">
+      <div class="hint-box hint-green">💡 <strong>${c.label}</strong> — アイテムを検索・選択して出品テンプレートを呼び出せます。</div>
+      <div class="search-bar">
+        <input class="search-input" id="search-${c.id}" placeholder="🔍 名前で検索" oninput="renderCatGrid('${c.id}')"/>
+        <button class="btn" onclick="document.getElementById('search-${c.id}').value='';renderCatGrid('${c.id}')">クリア</button>
+      </div>
+      <div class="two-col">
+        <div>
+          <div style="font-size:12px;color:#718096;margin-bottom:7px">一覧 <span id="count-${c.id}" class="count-badge">0件</span></div>
+          <div class="pokemon-grid" id="grid-${c.id}"></div>
+          <div style="margin-top:14px">
+            <button class="btn" onclick="toggleAddCatItem('${c.id}')">➕ 新しいアイテムを追加</button>
+            <div id="addForm-${c.id}" style="display:none;margin-top:8px" class="add-form">
+              <div class="form-grid-2">
+                <div class="form-field"><label class="form-label">名前 ※必須</label><input class="form-input" id="catname-${c.id}" placeholder="名前"/></div>
+                <div class="form-field"><label class="form-label">英語名</label><input class="form-input" id="caten-${c.id}" placeholder="English name"/></div>
+                <div class="form-field" style="grid-column:1/-1"><label class="form-label">備考</label><input class="form-input" id="catnotes-${c.id}" placeholder="省略可"/></div>
+              </div>
+              <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                <button class="btn btn-green" onclick="addCatItem('${c.id}')">追加する</button>
+                <span id="catAddMsg-${c.id}" style="font-size:12px;color:#38a169;display:none">✓ 追加</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="detail-${c.id}"><div class="empty-state">👆 左のリストからアイテムを選んでください</div></div>
+      </div>
+    </div>`).join('');
+  cats.forEach(c=>renderCatGrid(c.id));
+}
+
+function renderCatGrid(catId){
+  const q = (document.getElementById(`search-${catId}`)?.value||'').trim().toLowerCase();
+  const items = getCustomCatItems(catId);
+  const list = items.filter(x=>!q||x.name.toLowerCase().includes(q)||(x.english||'').toLowerCase().includes(q));
+  document.getElementById(`count-${catId}`).textContent = list.length+'件';
+  document.getElementById(`grid-${catId}`).innerHTML = list.length
+    ? list.map((x,i)=>`<div class="poke-card ${customCatSelected[catId]?.idx===i?'selected':''}" onclick="selectCatItem('${catId}',${i})">
+        <div class="poke-name">${x.name}</div>
+        <div class="poke-evos">${x.english||''}</div>
+      </div>`).join('')
+    : '<div class="empty-state" style="padding:20px">まだアイテムがありません</div>';
+}
+
+function selectCatItem(catId, idx){
+  const items = getCustomCatItems(catId);
+  customCatSelected[catId] = {idx, ...items[idx]};
+  customCatActiveTpl[catId] = null;
+  renderCatGrid(catId);
+  renderCatDetail(catId);
+}
+
+function renderCatDetail(catId){
+  const el = document.getElementById(`detail-${catId}`);
+  const sel = customCatSelected[catId];
+  if(!sel){ el.innerHTML='<div class="empty-state">👆 左のリストからアイテムを選んでください</div>'; return; }
+  const imgs = getImgs(catId, sel.name);
+  const tplMap = templates[catId] || {};
+  const jpKeys = Object.keys(tplMap).filter(k=>tplMap[k].platform==='jp');
+  const ebKeys = Object.keys(tplMap).filter(k=>tplMap[k].platform==='ebay');
+
+  let h = `<div class="detail-panel">
+    <div class="detail-name">${sel.name}</div>
+    <div class="detail-sub">${sel.english||''}</div>
+    ${sel.notes?`<div class="detail-sub">${sel.notes}</div>`:''}
+    ${renderImgGallery(catId, sel.name, imgs)}
+    <div class="listing-section-label"><span class="badge-jp">JP</span> 国内出品</div>
+    <div class="listing-btns">`;
+  jpKeys.forEach(k=>{ const t=tplMap[k]; h+=`<button class="listing-btn ${t.color} ${customCatActiveTpl[catId]===k?'active-btn':''}" onclick="setCatTpl('${catId}','${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div><div class="listing-divider"></div><div class="listing-section-label"><span class="badge-ebay">eBay</span> eBay出品</div><div class="listing-btns">`;
+  ebKeys.forEach(k=>{ const t=tplMap[k]; h+=`<button class="listing-btn ${t.color} ${customCatActiveTpl[catId]===k?'active-btn':''}" onclick="setCatTpl('${catId}','${k}')">${t.icon} ${t.label}</button>`; });
+  h += `</div>`;
+
+  const ak = customCatActiveTpl[catId];
+  if(ak && tplMap[ak]){
+    const t = tplMap[ak];
+    const vars = {名前:sel.name, 英語名:sel.english||'', 備考:sel.notes||''};
+    h += renderTplOutput(fillTpl(t.title, vars), fillTpl(t.desc, vars));
+  } else {
+    h += `<div style="color:#a0aec0;font-size:12px;padding:8px">👆 出品種類ボタンを押してください</div>`;
+  }
+  h += `</div>`;
+  el.innerHTML = h;
+}
+function setCatTpl(catId, k){ customCatActiveTpl[catId]=k; renderCatDetail(catId); }
+
+function toggleAddCatItem(catId){
+  const f = document.getElementById(`addForm-${catId}`);
+  f.style.display = f.style.display==='none'?'block':'none';
+}
+function addCatItem(catId){
+  const name = document.getElementById(`catname-${catId}`).value.trim();
+  if(!name) return;
+  const arr = getCustomCatItems(catId);
+  arr.push({name, english:document.getElementById(`caten-${catId}`).value.trim(), notes:document.getElementById(`catnotes-${catId}`).value.trim()});
+  saveCustomCatItems(catId, arr);
+  [`catname-${catId}`,`caten-${catId}`,`catnotes-${catId}`].forEach(id=>{ const e=document.getElementById(id);if(e)e.value=''; });
+  renderCatGrid(catId);
+  showMsg(`catAddMsg-${catId}`,'✓ 追加');
+}
+
+// カテゴリー追加モーダル
+function openAddCatModal(){ document.getElementById('addCatModal').classList.add('open'); }
+function closeAddCatModal(){ document.getElementById('addCatModal').classList.remove('open'); }
+function addCustomCat(){
+  const name = document.getElementById('newCatName').value.trim();
+  if(!name){ document.getElementById('catAddErr').textContent='名前を入力してください';document.getElementById('catAddErr').style.display='block';return; }
+  const icon = document.getElementById('newCatIcon').value.trim()||'📂';
+  const arr = getCustomCats();
+  const id = 'cat_'+Date.now().toString(36);
+  arr.push({id, label:name, icon});
+  saveCustomCats(arr);
+  loadTemplates();
+  buildCustomCatUI();
+  document.getElementById('newCatName').value='';
+  document.getElementById('newCatIcon').value='';
+  document.getElementById('catAddErr').style.display='none';
+  closeAddCatModal();
+}
+
+// ================================================================
+// 画像ギャラリー HTML生成
+// ================================================================
+function renderImgGallery(cat, name, imgs){
+  let h = `<div class="img-gallery">
+    <div class="img-gallery-title">📷 出品画像（${imgs.length}枚）
+      <label style="cursor:pointer"><span class="btn-sm bg-green">＋ 画像追加</span>
+        <input type="file" accept="image/*" style="display:none" onchange="handleImgAdd(event,'${cat}','${esc(name)}')"/>
+      </label>
+    </div>
+    <div class="img-row">`;
+  imgs.forEach(img=>{
+    h += `<div class="img-thumb-box">
+      <img src="${img.data}" alt=""/>
+      <div class="img-thumb-actions">
+        <button class="btn-sm bg-blue" onclick="dlImg('${cat}','${esc(name)}','${img.id}')" title="ダウンロード">⬇️</button>
+        <button class="btn-sm bg-purple" onclick="bgToolImg('${img.data}')" title="背景変更">🎨</button>
+        <button class="btn-sm bg-red" onclick="rmImg('${cat}','${esc(name)}','${img.id}')" title="削除">🗑</button>
+      </div>
+    </div>`;
+  });
+  if(imgs.length===0) h += `<div style="font-size:11px;color:#a0aec0;padding:8px 0">まだ画像がありません</div>`;
+  h += `</div></div>`;
+  return h;
+}
+
+function handleImgAdd(ev, cat, name){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    addImg(cat, name, e.target.result);
+    // 再描画
+    if(cat==='pokemon') renderPkDetail();
+    else if(cat==='illust') renderIlDetail();
+    else renderCatDetail(cat);
+  };
+  reader.readAsDataURL(file);
+}
+function dlImg(cat, name, imgId){
+  const imgs = getImgs(cat, name);
+  const img = imgs.find(x=>x.id===imgId); if(!img) return;
+  const a=document.createElement('a'); a.href=img.data; a.download=name+'_'+imgId+'.png'; a.click();
+}
+function rmImg(cat, name, imgId){
+  if(!confirm('この画像を削除しますか？')) return;
+  deleteImg(cat, name, imgId);
+  if(cat==='pokemon') renderPkDetail();
+  else if(cat==='illust') renderIlDetail();
+  else renderCatDetail(cat);
+}
+function bgToolImg(base64){
+  toolLoadBase64(base64);
+  switchCat('imagetool');
+}
+
+// ================================================================
+// テンプレート出力
+// ================================================================
+function fillTpl(tmpl, vars){
+  let r = tmpl;
+  for(const [k,v] of Object.entries(vars)) r=r.replace(new RegExp(`\\{${k}\\}`,'g'),v);
+  return r;
+}
+function renderTplOutput(title, desc){
+  return `<div class="template-block">
+    <div class="template-label">📝 題名 <button class="copy-btn" onclick="copyText('cp-title',this)">コピー</button></div>
+    <div class="template-text" id="cp-title">${esc(title)}</div>
+  </div>
+  <div class="template-block">
+    <div class="template-label">📄 説明文 <button class="copy-btn" onclick="copyText('cp-desc',this)">コピー</button></div>
+    <div class="template-text" id="cp-desc">${esc(desc)}</div>
+  </div>`;
+}
+async function copyText(id,btn){
+  const el=document.getElementById(id); if(!el) return;
+  try{ await navigator.clipboard.writeText(el.textContent); }
+  catch{ const r=document.createRange();r.selectNodeContents(el);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');window.getSelection().removeAllRanges(); }
+  btn.textContent='✓ コピー済み'; btn.classList.add('copied');
+  setTimeout(()=>{ btn.textContent='コピー'; btn.classList.remove('copied'); },2000);
+}
+
+// ================================================================
+// 画像ツール
+// ================================================================
+let toolOrigImg = null;
+function toolLoadImg(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  document.getElementById('toolFileName').textContent=file.name;
+  const r=new FileReader(); r.onload=e=>toolLoadBase64(e.target.result); r.readAsDataURL(file);
+}
+function toolLoadBase64(b64){
+  const img=new Image();
+  img.onload=()=>{ toolOrigImg=img; applyToolBg(); };
+  img.src=b64;
+}
+function applyToolBg(){
+  if(!toolOrigImg) return;
+  const canvas=document.getElementById('toolCanvas');
+  const ctx=canvas.getContext('2d');
+  const color=document.getElementById('toolBgColor').value;
+  const thresh=parseInt(document.getElementById('toolThresh').value);
+  canvas.width=toolOrigImg.width; canvas.height=toolOrigImg.height;
+  ctx.fillStyle=color; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const box=document.getElementById('toolCanvasBox');
+  box.style.minWidth='auto'; box.style.minHeight='auto';
+  document.getElementById('toolPlaceholder').style.display='none';
+  canvas.style.display='block';
+  if(thresh===0){ ctx.drawImage(toolOrigImg,0,0); return; }
+  const off=document.createElement('canvas'); off.width=toolOrigImg.width; off.height=toolOrigImg.height;
+  const octx=off.getContext('2d'); octx.drawImage(toolOrigImg,0,0);
+  const d=octx.getImageData(0,0,off.width,off.height);
+  for(let i=0;i<d.data.length;i+=4){
+    if(Math.min(d.data[i],d.data[i+1],d.data[i+2])>(255-thresh)) d.data[i+3]=0;
+  }
+  octx.putImageData(d,0,0); ctx.drawImage(off,0,0);
+}
+function setToolColor(c){ document.getElementById('toolBgColor').value=c; applyToolBg(); }
+function toolDownload(){
+  if(!toolOrigImg){alert('先に画像をアップロードしてください');return;}
+  const a=document.createElement('a'); a.href=document.getElementById('toolCanvas').toDataURL('image/png');
+  a.download='card_bg.png'; a.click();
+}
+function toolSaveToItem(){
+  if(!toolOrigImg){alert('先に画像をアップロードしてください');return;}
+  // 現在選択中のアイテムに保存
+  let saved=false;
+  if(selectedPk){ addImg('pokemon',selectedPk.name,document.getElementById('toolCanvas').toDataURL('image/png')); saved=true; showMsg('toolSaveMsg',`「${selectedPk.name}」に保存しました`); }
+  else if(selectedIl){ addImg('illust',selectedIl.name,document.getElementById('toolCanvas').toDataURL('image/png')); saved=true; showMsg('toolSaveMsg',`「${selectedIl.name}」に保存しました`); }
+  if(!saved) alert('先に検索ページでポケモンまたはイラストレーターを選択してください');
+}
+function toolReset(){
+  toolOrigImg=null;
+  const c=document.getElementById('toolCanvas'); c.style.display='none';
+  document.getElementById('toolPlaceholder').style.display='block';
+  const box=document.getElementById('toolCanvasBox'); box.style.minWidth='200px'; box.style.minHeight='200px';
+  document.getElementById('toolThresh').value=0; document.getElementById('toolThreshVal').textContent='0';
+  document.getElementById('toolFileName').textContent='';
+  document.getElementById('toolImgInput').value='';
+}
+
+// ================================================================
+// 設定
+// ================================================================
+function renderSettings(){
+  let h='';
+  // ポケモンテンプレート
+  h+=`<div class="settings-section"><h3>🃏 ポケモン テンプレート</h3>`;
+  const pkTpls=templates.pokemon||{};
+  const pkJp=Object.keys(pkTpls).filter(k=>pkTpls[k].platform==='jp');
+  const pkEb=Object.keys(pkTpls).filter(k=>pkTpls[k].platform==='ebay');
+  h+=`<div style="font-size:11px;font-weight:bold;color:#e53e3e;margin-bottom:6px"><span class="badge-jp">JP</span> 国内出品</div>`;
+  pkJp.forEach(k=>{ h+=renderTplSetting('pokemon',k,pkTpls[k],'{ポケモン名} {英語名} {進化系} {タイプ}'); });
+  h+=`<div style="font-size:11px;font-weight:bold;color:#e6a817;margin:10px 0 6px"><span class="badge-ebay">eBay</span> eBay出品</div>`;
+  pkEb.forEach(k=>{ h+=renderTplSetting('pokemon',k,pkTpls[k],'{ポケモン名} {英語名} {進化系} {タイプ}'); });
+  h+=`</div>`;
+  // イラストレーターテンプレート
+  h+=`<div class="settings-section"><h3>🎨 イラストレーター テンプレート</h3>`;
+  const ilTpls=templates.illust||{};
+  const ilJp=Object.keys(ilTpls).filter(k=>ilTpls[k].platform==='jp');
+  const ilEb=Object.keys(ilTpls).filter(k=>ilTpls[k].platform==='ebay');
+  h+=`<div style="font-size:11px;font-weight:bold;color:#e53e3e;margin-bottom:6px"><span class="badge-jp">JP</span> 国内出品</div>`;
+  ilJp.forEach(k=>{ h+=renderTplSetting('illust',k,ilTpls[k],'{名前} {英語名} {備考}'); });
+  h+=`<div style="font-size:11px;font-weight:bold;color:#e6a817;margin:10px 0 6px"><span class="badge-ebay">eBay</span> eBay出品</div>`;
+  ilEb.forEach(k=>{ h+=renderTplSetting('illust',k,ilTpls[k],'{名前} {英語名} {備考}'); });
+  h+=`</div>`;
+  // カスタムカテゴリー
+  const cats=getCustomCats();
+  cats.forEach(cat=>{
+    const tpls=templates[cat.id]||{};
+    const jp=Object.keys(tpls).filter(k=>tpls[k].platform==='jp');
+    const eb=Object.keys(tpls).filter(k=>tpls[k].platform==='ebay');
+    h+=`<div class="settings-section"><h3>${cat.icon} ${cat.label} テンプレート</h3>`;
+    jp.forEach(k=>{ h+=renderTplSetting(cat.id,k,tpls[k],'{名前} {英語名} {備考}'); });
+    eb.forEach(k=>{ h+=renderTplSetting(cat.id,k,tpls[k],'{名前} {英語名} {備考}'); });
+    h+=`</div>`;
+  });
+  // カテゴリー管理
+  h+=`<div class="settings-section"><h3>📂 カテゴリー管理</h3>`;
+  if(cats.length){
+    cats.forEach((cat,i)=>{
+      h+=`<div class="custom-item-row">
+        <span>${cat.icon} <strong>${cat.label}</strong></span>
+        <button class="btn-sm bg-red" onclick="deleteCat(${i})">削除</button>
+      </div>`;
+    });
+  } else { h+=`<div style="color:#a0aec0;font-size:12px">カスタムカテゴリーはまだありません</div>`; }
+  h+=`<div style="margin-top:10px"><button class="btn btn-green" onclick="openAddCatModal()">＋ 新しいカテゴリーを追加</button></div></div>`;
+  document.getElementById('settingsContent').innerHTML = h;
+}
+
+function renderTplSetting(cat, key, t, hint){
+  return `<div style="border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:10px">
+    <div style="font-size:12px;font-weight:bold;margin-bottom:8px">${t.icon} ${t.label}</div>
+    <div class="setting-row">
+      <div class="setting-label">題名テンプレート</div>
+      <input class="setting-input" id="tpl-title-${cat}-${key}" value="${esc(t.title)}" style="resize:none"/>
+      <div class="var-hint">変数：${hint}</div>
+    </div>
+    <div class="setting-row">
+      <div class="setting-label">説明文テンプレート</div>
+      <textarea class="setting-input" id="tpl-desc-${cat}-${key}" rows="8">${esc(t.desc)}</textarea>
+      <div class="var-hint">変数：${hint}</div>
+    </div>
+  </div>`;
+}
+
+function saveAllSettings(){
+  // 全カテゴリーのテンプレートを保存
+  ['pokemon','illust',...getCustomCats().map(c=>c.id)].forEach(cat=>{
+    if(!templates[cat]) return;
+    Object.keys(templates[cat]).forEach(key=>{
+      const tEl=document.getElementById(`tpl-title-${cat}-${key}`);
+      const dEl=document.getElementById(`tpl-desc-${cat}-${key}`);
+      if(tEl) templates[cat][key].title=tEl.value;
+      if(dEl) templates[cat][key].desc=dEl.value;
+    });
+  });
+  lsSet('allTemplates', templates);
+  showMsg('saveMsg','✓ 保存しました');
+}
+function resetAllSettings(){
+  if(!confirm('全テンプレートをデフォルトに戻しますか？')) return;
+  localStorage.removeItem('allTemplates');
+  loadTemplates();
+  renderSettings();
+}
+function deleteCat(idx){
+  if(!confirm('このカテゴリーを削除しますか？（アイテムデータも削除されます）')) return;
+  const cats=getCustomCats();
+  const cat=cats[idx];
+  localStorage.removeItem(`catItems_${cat.id}`);
+  cats.splice(idx,1);
+  saveCustomCats(cats);
+  loadTemplates();
+  buildCustomCatUI();
+  renderSettings();
+  // アクティブカテゴリーが削除されたらポケモンへ
+  if(document.querySelector(`[data-cat="${cat.id}"].active`)) switchCat('pokemon');
+}
+
+// ================================================================
+// ナビ・ページ切替
+// ================================================================
+let activeCat = 'pokemon';
+function switchCat(cat){
+  document.querySelectorAll('.cat-page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));
+  const page=document.getElementById('cat-'+cat);
+  if(page) page.classList.add('active');
+  const btn=document.querySelector(`.cat-btn[data-cat="${cat}"]`);
+  if(btn) btn.classList.add('active');
+  activeCat=cat;
+  if(cat==='settings') renderSettings();
+  if(cat==='illust'){ buildIllust(); renderIlGrid(); }
+}
+
+// ================================================================
+// ユーティリティ
+// ================================================================
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showMsg(id, msg){
+  const el=document.getElementById(id); if(!el) return;
+  el.textContent=msg; el.style.display='inline';
+  setTimeout(()=>el.style.display='none',2500);
+}
+
+// ================================================================
+// 初期化
+// ================================================================
+loadTemplates();
+buildPokemon();
+buildIllust();
+buildCustomCatUI();
+renderTypeFilters();
+renderPkGrid();
+renderIlGrid();
+</script>
+</body>
+</html>
