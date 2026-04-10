@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>セット本在庫管理</title>
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-  import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
-
+<!-- Firebase SDK (compat版 - 同期読み込みで確実に動作) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyA1MOQgZ3KZkwt36o0WUxCG7sIh9AwFqSo",
     authDomain: "setbook-b3d48.firebaseapp.com",
@@ -18,22 +17,8 @@
     messagingSenderId: "1066818640740",
     appId: "1:1066818640740:web:5600602059c37d2749f871"
   };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // Firebaseへ保存
-  window._fbSave = function(key, data) {
-    set(ref(db, key), data).catch(e => console.error('Firebase save error:', e));
-  };
-
-  // Firebase全データをリアルタイム監視
-  window._fbListen = function(callback) {
-    onValue(ref(db, '/'), snapshot => {
-      const data = snapshot.val() || {};
-      callback(data);
-    });
-  };
+  firebase.initializeApp(firebaseConfig);
+  window._db = firebase.database();
 </script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -547,63 +532,67 @@ const INITIAL_DATA = [
 // =====================================================================
 //  在庫データ管理（Firebase Realtime Database）
 // =====================================================================
-let inventory = {};   // { seriesId: { volKey: count } }
-let expanded = {};    // { seriesId: bool }
-let customSeries = []; // ユーザー追加シリーズ
-let overrides = {};   // { seriesId: { field: val } | { _deleted: true } }
-let coverImages = {}; // { seriesId: base64DataURL }
-let _fbReady = false;
+let inventory = {};
+let expanded = {};
+let customSeries = [];
+let overrides = {};
+let coverImages = {};
 let _saveTimer = null;
+let _ignoreNextUpdate = false; // 自分の保存による更新を無視するフラグ
 
 function loadStorage() {
-  // ローカルにキャッシュがあれば先に表示
+  // ローカルキャッシュで先に描画（体感速度UP）
   try {
-    inventory = JSON.parse(localStorage.getItem('inv') || '{}');
-    customSeries = JSON.parse(localStorage.getItem('custom') || '[]');
-    overrides = JSON.parse(localStorage.getItem('overrides') || '{}');
-    coverImages = JSON.parse(localStorage.getItem('images') || '{}');
+    inventory    = JSON.parse(localStorage.getItem('inv')      || '{}');
+    customSeries = JSON.parse(localStorage.getItem('custom')   || '[]');
+    overrides    = JSON.parse(localStorage.getItem('overrides')|| '{}');
+    coverImages  = JSON.parse(localStorage.getItem('images')   || '{}');
   } catch(e) {}
 
-  // Firebaseからリアルタイム同期
-  if (window._fbListen) {
-    window._fbListen(data => {
-      if (data.inventory) inventory = data.inventory;
-      if (data.customSeries) customSeries = data.customSeries;
-      if (data.overrides) overrides = data.overrides;
-      if (data.coverImages) coverImages = data.coverImages;
-      _fbReady = true;
-      // ローカルキャッシュも更新
-      try {
-        localStorage.setItem('inv', JSON.stringify(inventory));
-        localStorage.setItem('custom', JSON.stringify(customSeries));
-        localStorage.setItem('overrides', JSON.stringify(overrides));
-        localStorage.setItem('images', JSON.stringify(coverImages));
-      } catch(e) {}
-      render();
-    });
-  }
+  // Firebaseをリアルタイム監視（全端末に即反映）
+  const db = window._db;
+  if (!db) { render(); return; }
+
+  db.ref('/').on('value', snapshot => {
+    const data = snapshot.val() || {};
+    inventory    = data.inventory    || {};
+    customSeries = Array.isArray(data.customSeries) ? data.customSeries : [];
+    overrides    = data.overrides    || {};
+    coverImages  = data.coverImages  || {};
+
+    // ローカルキャッシュ更新
+    try {
+      localStorage.setItem('inv',       JSON.stringify(inventory));
+      localStorage.setItem('custom',    JSON.stringify(customSeries));
+      localStorage.setItem('overrides', JSON.stringify(overrides));
+      localStorage.setItem('images',    JSON.stringify(coverImages));
+    } catch(e) {}
+
+    render();
+  });
 }
 
 function saveStorage() {
-  // ローカルに即時保存
+  // ローカル即時保存
   try {
-    localStorage.setItem('inv', JSON.stringify(inventory));
-    localStorage.setItem('custom', JSON.stringify(customSeries));
+    localStorage.setItem('inv',       JSON.stringify(inventory));
+    localStorage.setItem('custom',    JSON.stringify(customSeries));
     localStorage.setItem('overrides', JSON.stringify(overrides));
-    localStorage.setItem('images', JSON.stringify(coverImages));
+    localStorage.setItem('images',    JSON.stringify(coverImages));
   } catch(e) {}
 
-  // Firebaseへは少し遅延してまとめて保存（連打対策）
+  // Firebaseへ0.6秒後にまとめて保存（連打しても1回にまとめる）
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
-    if (window._fbSave) {
-      window._fbSave('inventory', inventory);
-      window._fbSave('customSeries', customSeries.length ? customSeries : null);
-      window._fbSave('overrides', Object.keys(overrides).length ? overrides : null);
-      // 画像は容量大きいので別途
-      window._fbSave('coverImages', Object.keys(coverImages).length ? coverImages : null);
-    }
-  }, 800);
+    const db = window._db;
+    if (!db) return;
+    db.ref('/').update({
+      inventory:    inventory,
+      customSeries: customSeries.length ? customSeries : null,
+      overrides:    Object.keys(overrides).length ? overrides : null,
+      coverImages:  Object.keys(coverImages).length ? coverImages : null,
+    }).catch(e => console.error('Firebase保存エラー:', e));
+  }, 600);
 }
 
 // =====================================================================
