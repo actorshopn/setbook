@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>む 在庫管理</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyA1MOQgZ3KZkwt36o0WUxCG7sIh9AwFqSo",
+    authDomain: "setbook-b3d48.firebaseapp.com",
+    databaseURL: "https://setbook-b3d48-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "setbook-b3d48",
+    storageBucket: "setbook-b3d48.firebasestorage.app",
+    messagingSenderId: "1066818640740",
+    appId: "1:1066818640740:web:5600602059c37d2749f871"
+  };
+  firebase.initializeApp(firebaseConfig);
+  window._db = firebase.database();
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Hiragino Sans','Meiryo',sans-serif;background:#f0f2f5;color:#2d3748;min-height:100vh}
+
+/* ヘッダー */
+.header{background:linear-gradient(135deg,#553c9a,#6b46c1);color:white;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px}
+.header-title{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.header-mu{font-size:22px;background:rgba(255,255,255,0.2);width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#68d391;flex-shrink:0}
+.sync-dot.syncing{background:#fbbf24;animation:pulse 1s infinite}
+.sync-dot.offline{background:#fc8181}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-label{font-size:11px;opacity:.8}
+
+/* タブナビ */
+.tab-nav{background:#2d3748;display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tab-nav::-webkit-scrollbar{display:none}
+.tab-btn{padding:11px 15px;border:none;background:none;font-size:13px;cursor:pointer;color:#a0aec0;white-space:nowrap;border-bottom:3px solid transparent;transition:all .15s;flex-shrink:0;font-family:inherit}
+.tab-btn.active{color:white;border-bottom-color:#9f7aea;background:rgba(255,255,255,0.07)}
+.tab-btn:active{opacity:.7}
+.tab-btn.tab-alert{color:#f6ad55}
+.tab-btn.tab-alert.active{border-bottom-color:#f6ad55}
+.tab-btn.tab-add{color:#68d391;border-left:1px solid #4a5568}
+
+/* ローディング */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.85);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.spinner{width:36px;height:36px;border:4px solid #e2e8f0;border-top-color:#6b46c1;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay.hidden{display:none}
+
+/* メインレイアウト (スマホ: 縦積み / PC: 横並び) */
+.main-wrap{display:flex;height:calc(100vh - 90px);overflow:hidden}
+@media(max-width:640px){
+  .main-wrap{flex-direction:column;height:auto;overflow:visible}
+}
+
+/* 左パネル */
+.left-panel{width:200px;flex-shrink:0;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden}
+@media(max-width:640px){
+  .left-panel{width:100%;height:auto;border-right:none;border-bottom:2px solid #e2e8f0}
+}
+.left-search{padding:10px}
+.left-search input{width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:20px;font-size:13px;outline:none;background:#f8f8f8;font-family:inherit}
+.left-search input:focus{border-color:#6b46c1;background:white}
+.item-list{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1}
+@media(max-width:640px){
+  .item-list{max-height:200px}
+}
+.item-row{padding:10px 14px;cursor:pointer;border-bottom:1px solid #f5f5f5;font-size:13px;font-weight:500;transition:background .1s;display:flex;align-items:center;gap:6px;user-select:none}
+.item-row:active{background:#f0ebff}
+.item-row.selected{background:#ede9fe;color:#553c9a;font-weight:700;border-left:3px solid #6b46c1}
+.item-row .mu-count{margin-left:auto;font-size:10px;background:#e2e8f0;color:#718096;padding:2px 6px;border-radius:100px;flex-shrink:0}
+.item-row .mu-count.has-mu{background:#ddd6fe;color:#6b46c1;font-weight:700}
+.type-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+/* 右パネル */
+.right-panel{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#f0f2f5}
+.right-content{padding:12px}
+
+/* む カード */
+.mu-card{background:white;border-radius:10px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:2px solid transparent;transition:border-color .15s}
+.mu-card.expanded{border-color:#6b46c1}
+.mu-card-header{padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none;-webkit-user-select:none}
+.mu-card-header:active{background:#fafafa}
+.mu-name{font-size:14px;font-weight:700;flex:1;line-height:1.3}
+.mu-meta{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.mu-badge{font-size:10px;padding:3px 8px;border-radius:100px;font-weight:700}
+.badge-ok{background:#c6f6d5;color:#276749}
+.badge-low{background:#fef3c7;color:#92400e}
+.badge-out{background:#fed7d7;color:#c53030}
+.mu-toggle{font-size:11px;color:#bbb;transition:transform .2s;flex-shrink:0}
+.mu-toggle.open{transform:rotate(180deg)}
+
+/* む詳細 */
+.mu-body{display:none;border-top:1px solid #f0f0f0}
+.mu-body.open{display:block}
+.mu-body-inner{padding:12px}
+.sec-title{font-size:11px;font-weight:700;color:#718096;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
+.sec-title:first-child{margin-top:0}
+
+/* メモ */
+.memo-view{font-size:12px;color:#4a5568;padding:8px 10px;background:#f7fafc;border-radius:7px;border:1.5px solid #e2e8f0;min-height:36px;cursor:pointer;line-height:1.6;word-break:break-all}
+.memo-view:active{border-color:#6b46c1}
+.memo-edit{width:100%;padding:8px 10px;border:2px solid #6b46c1;border-radius:7px;font-size:12px;font-family:inherit;outline:none;resize:none;min-height:70px;line-height:1.6}
+
+/* 出品画像 */
+.img-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
+.img-box{position:relative;flex-shrink:0}
+.img-box img{width:72px;height:72px;object-fit:contain;border-radius:8px;border:2px solid #e2e8f0;background:#f9fafb;display:block;cursor:zoom-in}
+.img-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:#e53e3e;color:white;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.img-add-label{width:72px;height:72px;border:2px dashed #c6f6d5;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:white;font-size:11px;color:#38a169;font-weight:700;gap:2px;flex-shrink:0}
+.img-add-label:active{background:#f0fff4}
+
+/* カードテーブル (スマホではカード形式) */
+.card-list{display:flex;flex-direction:column;gap:7px}
+.card-item{background:#f9fafb;border-radius:8px;border:1.5px solid #e2e8f0;overflow:hidden}
+.card-item.editing{border-color:#6b46c1;background:#faf5ff}
+.card-top{display:flex;align-items:center;gap:8px;padding:8px 10px}
+.card-name-area{flex:1;min-width:0}
+.card-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-code{font-size:10px;color:#a0aec0;margin-top:1px}
+.card-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.stock-btn{font-size:13px;font-weight:700;padding:4px 12px;border-radius:7px;border:2px solid transparent;cursor:pointer;min-width:52px;text-align:center;transition:all .15s}
+.stock-btn.s-ok{background:#f0fff4;color:#276749;border-color:#c6f6d5}
+.stock-btn.s-low{background:#fffbeb;color:#92400e;border-color:#fcd34d}
+.stock-btn.s-out{background:#fff5f5;color:#c53030;border-color:#fed7d7}
+.stock-btn:active{transform:scale(0.95)}
+.req-chip{font-size:10px;background:#e2e8f0;color:#4a5568;padding:2px 6px;border-radius:100px}
+.card-actions{display:flex;gap:5px;flex-shrink:0}
+
+/* カード画像エリア */
+.card-imgs-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:4px 10px 8px}
+.card-img-wrap{position:relative;display:inline-block;flex-shrink:0}
+.card-img-thumb{width:44px;height:44px;object-fit:contain;border-radius:6px;border:1.5px solid #e2e8f0;cursor:zoom-in;background:#f9fafb;display:block}
+.card-img-del{position:absolute;top:-5px;right:-5px;width:16px;height:16px;background:#e53e3e;color:white;border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700}
+.card-img-add{width:44px;height:44px;border:1.5px dashed #cbd5e0;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#a0aec0;background:white;flex-shrink:0}
+.card-img-add:active{border-color:#6b46c1;color:#6b46c1}
+
+/* 在庫編集インライン */
+.stock-input-row{display:flex;align-items:center;gap:6px;padding:6px 10px 8px;background:#faf5ff;border-top:1px solid #e9d8fd}
+.stock-counter{display:flex;align-items:center;gap:10px}
+.cnt-btn{width:36px;height:36px;border-radius:50%;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.cnt-btn.minus{background:#fdecea;color:#e74c3c}
+.cnt-btn.plus{background:#d5f5e3;color:#27ae60}
+.cnt-val{font-size:26px;font-weight:800;min-width:50px;text-align:center;color:#2d3748}
+.stock-save-row{display:flex;gap:6px;margin-left:auto}
+
+/* 編集フォーム */
+.card-edit-form{padding:8px 10px 10px;background:#faf5ff;border-top:1px solid #e9d8fd;display:flex;flex-direction:column;gap:7px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.edit-input{width:100%;padding:7px 9px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:13px;font-family:inherit;outline:none}
+.edit-input:focus{border-color:#6b46c1}
+.edit-label{font-size:10px;color:#718096;font-weight:700;margin-bottom:3px}
+
+/* ボタン共通 */
+.btn-sm{padding:5px 11px;border-radius:7px;font-size:12px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn-sm:active{opacity:.7}
+.bp{background:#6b46c1;color:white}
+.bg{background:#38a169;color:white}
+.br{background:#e53e3e;color:white}
+.bb{background:#3182ce;color:white}
+.bgr{background:#718096;color:white}
+.bw{background:#e2e8f0;color:#4a5568}
+
+/* FAB */
+.fab{position:fixed;bottom:20px;right:16px;background:#6b46c1;color:white;border:none;border-radius:50px;padding:13px 18px;font-size:14px;cursor:pointer;box-shadow:0 4px 14px rgba(107,70,193,0.5);z-index:50;display:flex;align-items:center;gap:6px;font-weight:700;font-family:inherit}
+.fab:active{opacity:.85;transform:scale(0.97)}
+
+/* モーダル（下から） */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.modal{background:white;border-radius:16px 16px 0 0;width:100%;max-width:520px;padding:20px 20px 30px;max-height:88vh;overflow-y:auto}
+.modal-hdg{font-size:15px;font-weight:700;margin-bottom:14px}
+.form-field{margin-bottom:11px}
+.form-label{font-size:11px;font-weight:700;color:#4a5568;margin-bottom:4px;display:block}
+.form-input{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none}
+.form-input:focus{border-color:#6b46c1}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal-btns{display:flex;gap:8px;margin-top:14px}
+.modal-btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;font-family:inherit}
+.modal-btn.cancel{background:#f0f0f0;color:#555}
+.modal-btn.confirm{background:#6b46c1;color:white}
+.modal-btn:active{opacity:.8}
+
+/* 在庫不足パネル */
+.alert-wrap{padding:12px}
+.alert-group{background:white;border-radius:10px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.07)}
+.alert-group-hdr{padding:10px 14px;font-size:13px;font-weight:700;background:#fff8f0;border-bottom:1px solid #feebc8;display:flex;align-items:center;gap:6px}
+.alert-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid #f5f5f5}
+.alert-row:last-child{border-bottom:none}
+.alert-card-name{flex:1;font-size:13px;font-weight:500}
+.alert-mu-name{font-size:10px;color:#a0aec0}
+
+/* 画像拡大 */
+.img-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:999;align-items:center;justify-content:center;cursor:zoom-out}
+.img-modal.open{display:flex}
+.img-modal img{max-width:92vw;max-height:88vh;border-radius:8px;object-fit:contain}
+
+/* トースト */
+.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(30,40,55,0.93);color:white;padding:8px 20px;border-radius:24px;font-size:13px;font-weight:600;z-index:400;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 空状態 */
+.empty-state{text-align:center;padding:36px 16px;color:#a0aec0;font-size:14px}
+.empty-icon{font-size:40px;margin-bottom:8px}
+
+/* 右パネルヘッダー */
+.right-hdr{padding:12px 14px 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.right-hdr-name{font-size:17px;font-weight:700}
+.right-hdr-meta{font-size:11px;color:#a0aec0}
+
+/* アイテム追加ボタン（カスタムタブ用） */
+.add-item-row{padding:8px 10px}
+</style>
+</head>
+<body>
+
+<!-- ローディング -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div style="font-size:13px;color:#718096">Firebase に接続中...</div>
+</div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">
+    <div class="header-mu">む</div>
+    <div>
+      <div>在庫管理</div>
+      <div style="font-size:10px;opacity:.7">ポケモンカード EC販売</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <a href="index.html" style="color:white;font-size:11px;opacity:.75;text-decoration:none;background:rgba(255,255,255,0.15);padding:5px 10px;border-radius:6px">📚 セット本</a>
+    <div class="sync-dot" id="syncDot"></div>
+    <div class="sync-label" id="syncLabel">接続中</div>
+  </div>
+</div>
+
+<!-- タブナビ -->
+<div class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="pokemon" onclick="switchTab('pokemon')">🃏 ポケモン</button>
+  <button class="tab-btn" data-tab="illust" onclick="switchTab('illust')">🎨 イラストレーター</button>
+  <span id="customTabBtns"></span>
+  <button class="tab-btn tab-alert" data-tab="alert" onclick="switchTab('alert')">⚠️ 在庫不足</button>
+  <button class="tab-btn tab-add" onclick="openAddTabModal()">＋ タブ</button>
+</div>
+
+<!-- メインエリア（在庫不足タブ以外） -->
+<div class="main-wrap" id="mainWrap">
+  <div class="left-panel">
+    <div class="left-search">
+      <input id="leftSearch" placeholder="🔍 検索..." oninput="renderLeft()"/>
+    </div>
+    <div class="item-list" id="itemList"></div>
+  </div>
+  <div class="right-panel" id="rightPanel">
+    <div id="rightContent"><div class="empty-state"><div class="empty-icon">👈</div>左から選んでください</div></div>
+  </div>
+</div>
+
+<!-- 在庫不足パネル -->
+<div id="alertWrap" style="display:none" class="alert-wrap">
+  <div id="alertContent"></div>
+</div>
+
+<!-- FAB（む追加） -->
+<button class="fab" id="fabBtn" onclick="openAddMuModal()" style="display:none">
+  ＋ 「む」を追加
+</button>
+
+<!-- む追加モーダル -->
+<div class="overlay" id="addMuModal">
+  <div class="modal">
+    <div class="modal-hdg">「む」を追加</div>
+    <div class="form-field">
+      <label class="form-label">「む」の名前 ※必須</label>
+      <input class="form-input" id="muNameIn" placeholder="例：ピカチュウ SAR 5枚セット"/>
+    </div>
+    <div class="form-field">
+      <label class="form-label">メモ</label>
+      <textarea class="form-input" id="muMemoIn" placeholder="出品説明・備考など" style="min-height:60px;resize:none"></textarea>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('addMuModal')">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveMu()">追加する</button>
+    </div>
+    <div id="muErr" style="font-size:12px;color:#e53e3e;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<!-- カード追加モーダル -->
+<div class="overlay" id="addCardModal">
+  <div class="modal">
+    <div class="modal-hdg">カードを追加</div>
+    <div class="form-field">
+      <label class="form-label">カード名 ※必須</label>
+      <input class="form-input" id="cNameIn" placeholder="例：ピカチュウ SAR SV1a-194"/>
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">カード番号</label>
+        <input class="form-input" id="cCodeIn" placeholder="例：SV1a-194"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">必要枚数（1む）</label>
+        <input class="form-input" id="cReqIn" type="number" min="1" value="1"/>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="form-label">現在の在庫数</label>
+      <input class="form-input" id="cStockIn" type="number" min="0" value="0"/>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('addCardModal')">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveCard()">追加する</button>
+    </div>
+    <div id="cardErr" style="font-size:12px;color:#e53e3e;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<!-- タブ追加モーダル -->
+<div class="overlay" id="addTabModal">
+  <div class="modal">
+    <div class="modal-hdg">新しいタブを追加</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label class="form-label">タブ名 ※必須</label>
+        <input class="form-input" id="tabNameIn" placeholder="例：セット商品"/>
+      </div>
+      <div class="form-field">
+        <label class="form-label">絵文字</label>
+        <input class="form-input" id="tabEmojiIn" placeholder="例：🌟" maxlength="2"/>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('addTabModal')">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveTab()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- カスタムアイテム追加モーダル -->
+<div class="overlay" id="addItemModal">
+  <div class="modal">
+    <div class="modal-hdg" id="addItemHdg">アイテムを追加</div>
+    <div class="form-field">
+      <label class="form-label">名前 ※必須</label>
+      <input class="form-input" id="itemNameIn" placeholder=""/>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal('addItemModal')">キャンセル</button>
+      <button class="modal-btn confirm" onclick="saveItem()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<!-- 画像拡大 -->
+<div class="img-modal" id="imgModal" onclick="closeImgModal()">
+  <img id="imgModalSrc" src="" alt=""/>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ================================================================
+// データ定義
+// ================================================================
+const POKEMON = [
+  ['ドラゴン','キュレム'],['ドラゴン','タツベイ'],['ドラゴン','ドラメシヤ'],['ドラゴン','ミニリュウ'],
+  ['ドラゴン','ムゲンダイナ'],['ドラゴン','モノズ'],['ドラゴン','ラティアス'],['ドラゴン','オノンド'],
+  ['ドラゴン','レックウザ'],
+  ['ノーマル','イーブイ'],['ノーマル','ゴンベ'],['ノーマル','チラーミィ'],['ノーマル','チルット'],
+  ['ノーマル','ニャース'],['ノーマル','ペラップ'],['ノーマル','メタモン'],['ノーマル','ピンプク'],
+  ['ノーマル','ルギア'],['ノーマル','ワッカネズミ'],
+  ['電気','エレズン'],['電気','コリンク'],['電気','サンダー'],['電気','ゼクロム'],['電気','ゼラオラ'],
+  ['電気','ピカチュウ'],['電気','ピカチュウ②'],['電気','ミライドン'],['電気','モルペコ'],
+  ['電気','マイナン'],['電気','パモ'],['電気','ロトム'],['電気','ライコウ'],
+  ['闘','イワーク'],['闘','グラードン'],['闘','コライドン'],['闘','スナバァ'],['闘','ディアンシー'],
+  ['闘','ナックラー'],['闘','フカマル'],['闘','ヨーギラス'],['闘','リオル'],
+  ['草','キモリ'],['草','サルノリ'],['草','シェイミ'],['草','シキジカ'],['草','ストライク'],
+  ['草','セレビー'],['草','チコリータ'],['草','ツタージャ'],['草','ナエトル'],['草','ニャオハ'],
+  ['草','フシギダネ'],['草','モクロー'],
+  ['悪','アブソル'],['悪','イベルタル'],['悪','ウパー（パルデア）'],['悪','ゾロア'],
+  ['悪','ダークライ'],['悪','チョロネコ'],['悪','ニューラ'],
+  ['鋼','クチート'],['鋼','ザシアン'],['鋼','ジラーチ'],['鋼','ダンバル'],['鋼','ディアルガ'],
+  ['水','アシマリ'],['水','スイクン'],['水','カイオーガ'],['水','クワッス'],['水','ケルディオ'],
+  ['水','ケロマツ'],['水','コイキング'],['水','コオリッポ'],['水','パルキア'],['水','ブイゼル'],
+  ['水','フリーザー'],['水','ポッチャマ'],['水','フィオネ'],['水','ミズゴロウ'],['水','ミジュマル'],
+  ['水','メッソン'],['水','ヤドン'],['水','ラプラス'],['水','ワニノコ'],['水','ゼニガメ'],
+  ['水','コダック'],['水','ミロカロス'],
+  ['炎','エンテイ'],['炎','アチャモ'],['炎','ガーディ'],['炎','カルボウ'],['炎','ニャビー'],
+  ['炎','ヒコザル'],['炎','ヒトカゲ'],['炎','ヒバニー'],['炎','ヒトモシ'],['炎','ファイアー'],
+  ['炎','フォッコ'],['炎','ホウオウ'],['炎','ヒノアラシ'],['炎','ポカブ'],['炎','ホゲータ'],
+  ['炎','ポニータ'],['炎','ビクティニ'],['炎','ロコン'],
+  ['超','カゲボウズ'],['超','カヌチャン'],['超','クレセリア'],['超','ゴース'],['超','コレクレー'],
+  ['超','ゼルネアス'],['超','ソーナノ'],['超','デオキシス'],['超','デデンネ'],['超','トゲピー'],
+  ['超','ニャスパー'],['超','ピィ'],['超','アンノーン'],['超','ヒラヒナ'],['超','フワンテ'],
+  ['超','プリン'],['超','マホミル'],['超','マリル'],['超','ミカルゲ'],['超','ミミッキュ'],
+  ['超','ミュウ'],['超','ムウマ'],['超','ヤミラミ'],['超','アグノム'],['超','ヨマワル'],
+  ['超','ラルトス'],['超','ギラティナ'],['超','まーいーか'],
+];
+const ILLUSTRATORS = [
+  '杉森建','有田満弘','西田敦子','5ban Graphics','TOKIYA','sowsow',
+  'Yuu Nishida','Satoshi Nakai','Kouki Saitou','Shibuzoh.','Sekio','kantaro',
+  'Tomokazu Komiya','Tetra','Clementina','Calum Alexander Watt',
+  'Kagemaru Himeno','Naoyo Kimura','Ryo Ueda','Yuka Morii',
+  'Kizuki Arata','Ryota Murayama','Masakazu Fukuda',
+];
+const TYPE_COLORS = {
+  'ドラゴン':'#7b3fc4','ノーマル':'#a0aec0','電気':'#d4a017','闘':'#c05621',
+  '草':'#38a169','悪':'#2d3748','鋼':'#718096','水':'#3182ce',
+  '炎':'#e53e3e','超':'#9f7aea',
+};
+
+// ================================================================
+// アプリ状態
+// ================================================================
+let appData = { sets:{}, tabs:{}, tabItems:{} }; // Firebase から同期
+let currentTab = 'pokemon';
+let selectedItem = null;
+let expandedMuId = null;
+let editingCard = null;  // { muId, cardId, mode:'stock'|'edit' }
+let addMuTarget = null;
+let addCardMuId = null;
+let addItemTabId = null;
+let isLoaded = false;
+
+// ================================================================
+// Firebase リアルタイム同期
+// ================================================================
+const db = window._db;
+
+// 接続状態監視
+firebase.database().ref('.info/connected').on('value', snap => {
+  const online = snap.val();
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if(online){
+    dot.className='sync-dot';
+    label.textContent='同期中';
+  } else {
+    dot.className='sync-dot offline';
+    label.textContent='オフライン';
+  }
+});
+
+// 全データをリアルタイム受信
+db.ref('muApp').on('value', snap => {
+  const data = snap.val() || {};
+  appData.sets    = data.sets     || {};
+  appData.tabs    = data.tabs     || {};
+  appData.tabItems= data.tabItems || {};
+  if(!isLoaded){
+    isLoaded = true;
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }
+  buildCustomTabBtns();
+  renderLeft();
+  renderRight();
+  if(currentTab === 'alert') renderAlert();
+});
+
+// ================================================================
+// Firebase 書き込みヘルパー
+// ================================================================
+function fbSet(path, val){ return db.ref('muApp/'+path).set(val) }
+function fbUpdate(path, val){ return db.ref('muApp/'+path).update(val) }
+function fbRemove(path){ return db.ref('muApp/'+path).remove() }
+function genId(prefix){ return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
+
+// ================================================================
+// 画像圧縮
+// ================================================================
+function compressImage(file, maxW=600, maxH=600, quality=0.75){
+  return new Promise(resolve=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w=img.width, h=img.height;
+        if(w>maxW||h>maxH){
+          const r=Math.min(maxW/w,maxH/h);
+          w=Math.round(w*r); h=Math.round(h*r);
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ================================================================
+// タブ切り替え
+// ================================================================
+function switchTab(tab){
+  currentTab = tab;
+  selectedItem = null;
+  expandedMuId = null;
+  editingCard = null;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const mainWrap=document.getElementById('mainWrap');
+  const alertWrap=document.getElementById('alertWrap');
+  const fab=document.getElementById('fabBtn');
+  if(tab==='alert'){
+    mainWrap.style.display='none';
+    alertWrap.style.display='block';
+    fab.style.display='none';
+    renderAlert();
+  } else {
+    mainWrap.style.display='flex';
+    alertWrap.style.display='none';
+    fab.style.display='none';
+    renderLeft();
+    renderRight();
+  }
+}
+
+function buildCustomTabBtns(){
+  const container=document.getElementById('customTabBtns');
+  const tabs=appData.tabs;
+  container.innerHTML=Object.values(tabs).map(t=>
+    `<button class="tab-btn" data-tab="${t.id}" onclick="switchTab('${t.id}')">${t.emoji||'📁'} ${esc(t.name)}</button>`
+  ).join('');
+  // アクティブクラス再適用
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===currentTab));
+}
+
+// ================================================================
+// 左パネル
+// ================================================================
+function getItems(){
+  const q=(document.getElementById('leftSearch')?.value||'').trim().toLowerCase();
+  if(currentTab==='pokemon')
+    return POKEMON.filter(r=>!q||r[1].toLowerCase().includes(q)).map(r=>({name:r[1],type:r[0]}));
+  if(currentTab==='illust')
+    return ILLUSTRATORS.filter(n=>!q||n.toLowerCase().includes(q)).map(n=>({name:n,type:''}));
+  const items=(appData.tabItems[currentTab]||[]);
+  return items.filter(n=>!q||n.toLowerCase().includes(q)).map(n=>({name:n,type:''}));
+}
+
+function renderLeft(){
+  if(['alert'].includes(currentTab)) return;
+  const items=getItems();
+  const sets=Object.values(appData.sets);
+  let html=items.map(it=>{
+    const cnt=sets.filter(m=>m.tab===currentTab&&m.item===it.name).length;
+    const dot=it.type?`<span class="type-dot" style="background:${TYPE_COLORS[it.type]||'#e2e8f0'}"></span>`:'';
+    const sel=selectedItem&&selectedItem===it.name;
+    return `<div class="item-row${sel?' selected':''}" onclick="selectItem('${esc(it.name)}')">
+      ${dot}
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(it.name)}</span>
+      <span class="mu-count${cnt>0?' has-mu':''}">${cnt}</span>
+    </div>`;
+  }).join('');
+
+  if(!['pokemon','illust'].includes(currentTab)){
+    html+=`<div class="add-item-row"><button class="btn-sm bg" style="width:100%" onclick="openAddItemModal('${currentTab}')">＋ アイテム追加</button></div>`;
+  }
+  if(items.length===0 && ['pokemon','illust'].includes(currentTab)){
+    html=`<div style="padding:16px 12px;font-size:12px;color:#a0aec0">見つかりません</div>`;
+  }
+  document.getElementById('itemList').innerHTML=html;
+}
+
+function selectItem(name){
+  selectedItem=name;
+  expandedMuId=null;
+  editingCard=null;
+  renderLeft();
+  renderRight();
+  const fab=document.getElementById('fabBtn');
+  fab.style.display=selectedItem?'flex':'none';
+}
+
+// ================================================================
+// 右パネル
+// ================================================================
+function renderRight(){
+  const rc=document.getElementById('rightContent');
+  if(!selectedItem){
+    rc.innerHTML='<div class="empty-state"><div class="empty-icon">👈</div>左から選んでください</div>';
+    return;
+  }
+  const muList=Object.values(appData.sets).filter(m=>m.tab===currentTab&&m.item===selectedItem);
+  muList.sort((a,b)=>a.createdAt-b.createdAt);
+  let html=`<div class="right-hdr">
+    <div>
+      <div class="right-hdr-name">${esc(selectedItem)}</div>
+      <div class="right-hdr-meta">「む」 ${muList.length}件</div>
+    </div>
+  </div>`;
+  if(muList.length===0){
+    html+=`<div class="empty-state" style="background:white;border-radius:10px;margin:0 12px">
+      <div class="empty-icon">📦</div>まだ「む」がありません<br><small>右下のボタンから追加</small>
+    </div>`;
+  } else {
+    html+=muList.map(mu=>renderMuCard(mu)).join('');
+    html+='<div style="height:80px"></div>';
+  }
+  rc.innerHTML=html;
+}
+
+function renderMuCard(mu){
+  const isExp=expandedMuId===mu.id;
+  const cards=Object.values(mu.cards||{});
+  const low=cards.filter(c=>c.stock<=5&&c.stock>0).length;
+  const out=cards.filter(c=>c.stock===0).length;
+  let badgeCls='badge-ok',badgeTxt='在庫OK';
+  if(out>0){badgeCls='badge-out';badgeTxt='在庫切れ';}
+  else if(low>0){badgeCls='badge-low';badgeTxt='在庫少';}
+
+  let html=`<div class="mu-card${isExp?' expanded':''}" id="mc_${mu.id}">
+    <div class="mu-card-header" onclick="toggleMu('${mu.id}')">
+      <div class="mu-name">${esc(mu.name)}</div>
+      <div class="mu-meta">
+        <span style="font-size:11px;color:#a0aec0">${cards.length}種</span>
+        <span class="mu-badge ${badgeCls}">${badgeTxt}</span>
+      </div>
+      <span class="mu-toggle${isExp?' open':''}">▼</span>
+    </div>
+    <div class="mu-body${isExp?' open':''}">
+      <div class="mu-body-inner">`;
+
+  // メモ
+  const memo=mu.memo||'';
+  html+=`<div class="sec-title">📝 メモ <button class="btn-sm bgr" onclick="editMemo('${mu.id}')">編集</button></div>
+  <div id="memoView_${mu.id}" class="memo-view" onclick="editMemo('${mu.id}')">${memo?esc(memo):'<span style="color:#cbd5e0">タップして編集...</span>'}</div>
+  <div id="memoEdit_${mu.id}" style="display:none">
+    <textarea class="memo-edit" id="memoTxt_${mu.id}">${esc(memo)}</textarea>
+    <div style="display:flex;gap:6px;margin-top:5px">
+      <button class="btn-sm bp" onclick="saveMemo('${mu.id}')">保存</button>
+      <button class="btn-sm bw" onclick="cancelMemo('${mu.id}')">キャンセル</button>
+    </div>
+  </div>`;
+
+  // 出品画像
+  const lImgs=Object.values(mu.listingImages||{});
+  html+=`<div class="sec-title">🖼️ 出品画像
+    <label class="btn-sm bg" style="cursor:pointer">＋ 追加<input type="file" accept="image/*" multiple style="display:none" onchange="addListingImgs(event,'${mu.id}')"/></label>
+  </div>
+  <div class="img-row">
+    ${lImgs.map(img=>`<div class="img-box">
+      <img src="${img.data}" onclick="openImg('${img.data}')" loading="lazy"/>
+      <div class="img-del" onclick="delListingImg('${mu.id}','${img.id}')">✕</div>
+    </div>`).join('')}
+  </div>`;
+
+  // カード一覧
+  const cardList=Object.values(mu.cards||{});
+  html+=`<div class="sec-title">🃏 必要カード
+    <button class="btn-sm bg" onclick="openAddCard('${mu.id}')">＋ カード追加</button>
+  </div>
+  <div class="card-list">`;
+
+  cardList.forEach(card=>{
+    const eKey=`${mu.id}_${card.id}`;
+    const isEditStock=editingCard&&editingCard.muId===mu.id&&editingCard.cardId===card.id&&editingCard.mode==='stock';
+    const isEditFull=editingCard&&editingCard.muId===mu.id&&editingCard.cardId===card.id&&editingCard.mode==='edit';
+    const sc=card.stock===0?'s-out':card.stock<=5?'s-low':'s-ok';
+    const cardImgs=Object.values(card.images||{});
+
+    html+=`<div class="card-item${(isEditStock||isEditFull)?' editing':''}" id="ci_${eKey}">
+      <div class="card-top">
+        <div class="card-name-area">
+          <div class="card-name">${esc(card.name)}</div>
+          <div class="card-code">${esc(card.code||'')} <span class="req-chip">×${card.requiredQty||1}</span></div>
+        </div>
+        <div class="card-right">
+          <button class="stock-btn ${sc}" onclick="startStockEdit('${mu.id}','${card.id}')">${card.stock}枚</button>
+        </div>
+        <div class="card-actions">
+          <button class="btn-sm bb" onclick="startFullEdit('${mu.id}','${card.id}')">編集</button>
+          <button class="btn-sm br" onclick="delCard('${mu.id}','${card.id}')">削除</button>
+        </div>
+      </div>`;
+
+    // 画像行
+    html+=`<div class="card-imgs-row">
+      ${cardImgs.map(img=>`<div class="card-img-wrap">
+        <img class="card-img-thumb" src="${img.data}" onclick="openImg('${img.data}')" loading="lazy"/>
+        <div class="card-img-del" onclick="delCardImg('${mu.id}','${card.id}','${img.id}')">✕</div>
+      </div>`).join('')}
+      <label class="card-img-add">＋<input type="file" accept="image/*" multiple style="display:none" onchange="addCardImgs(event,'${mu.id}','${card.id}')"/></label>
+    </div>`;
+
+    // 在庫編集エリア
+    if(isEditStock){
+      html+=`<div class="stock-input-row">
+        <div class="stock-counter">
+          <button class="cnt-btn minus" onclick="changeStock('${mu.id}','${card.id}',-1)">−</button>
+          <span class="cnt-val" id="sv_${eKey}">${card.stock}</span>
+          <button class="cnt-btn plus" onclick="changeStock('${mu.id}','${card.id}',1)">＋</button>
+        </div>
+        <div class="stock-save-row">
+          <button class="btn-sm bp" onclick="saveStock('${mu.id}','${card.id}')">保存</button>
+          <button class="btn-sm bw" onclick="cancelEdit()">✕</button>
+        </div>
+      </div>`;
+    }
+
+    // フル編集エリア
+    if(isEditFull){
+      html+=`<div class="card-edit-form">
+        <div><div class="edit-label">カード名</div><input class="edit-input" id="en_${eKey}" value="${esc(card.name)}"/></div>
+        <div class="form-row-2">
+          <div><div class="edit-label">番号</div><input class="edit-input" id="ec_${eKey}" value="${esc(card.code||'')}"/></div>
+          <div><div class="edit-label">必要枚数</div><input class="edit-input" id="er_${eKey}" type="number" min="1" value="${card.requiredQty||1}"/></div>
+        </div>
+        <div><div class="edit-label">在庫数</div><input class="edit-input" id="es_${eKey}" type="number" min="0" value="${card.stock}"/></div>
+        <div style="display:flex;gap:6px">
+          <button class="btn-sm bp" onclick="saveFullEdit('${mu.id}','${card.id}')">保存</button>
+          <button class="btn-sm bw" onclick="cancelEdit()">キャンセル</button>
+        </div>
+      </div>`;
+    }
+
+    html+=`</div>`;
+  });
+
+  html+=`</div>`;
+
+  // む操作
+  html+=`<div style="display:flex;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid #f0f0f0;justify-content:space-between">
+    <button class="btn-sm bb" onclick="renameMu('${mu.id}')">名前変更</button>
+    <button class="btn-sm br" onclick="deleteMu('${mu.id}')">「む」を削除</button>
+  </div>
+  </div></div></div>`;
+
+  return html;
+}
+
+// ================================================================
+// む操作
+// ================================================================
+function toggleMu(muId){
+  expandedMuId=expandedMuId===muId?null:muId;
+  editingCard=null;
+  renderRight();
+  if(expandedMuId){
+    setTimeout(()=>{
+      const el=document.getElementById('mc_'+muId);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    },150);
+  }
+}
+
+function openAddMuModal(){
+  if(!selectedItem) return;
+  addMuTarget={tab:currentTab,item:selectedItem};
+  document.getElementById('muNameIn').value='';
+  document.getElementById('muMemoIn').value='';
+  document.getElementById('muErr').style.display='none';
+  document.getElementById('addMuModal').classList.add('show');
+  setTimeout(()=>document.getElementById('muNameIn').focus(),100);
+}
+
+function saveMu(){
+  const name=document.getElementById('muNameIn').value.trim();
+  const memo=document.getElementById('muMemoIn').value.trim();
+  if(!name){document.getElementById('muErr').textContent='名前を入力してください';document.getElementById('muErr').style.display='block';return;}
+  const id=genId('mu');
+  fbSet(`sets/${id}`,{id,tab:addMuTarget.tab,item:addMuTarget.item,name,memo,createdAt:Date.now()});
+  closeModal('addMuModal');
+  expandedMuId=id;
+  toast('「む」を追加しました');
+}
+
+function deleteMu(muId){
+  if(!confirm('この「む」を削除しますか？')) return;
+  fbRemove(`sets/${muId}`);
+  if(expandedMuId===muId) expandedMuId=null;
+  toast('削除しました');
+}
+
+function renameMu(muId){
+  const mu=appData.sets[muId];
+  if(!mu) return;
+  const name=prompt('新しい名前:', mu.name);
+  if(!name||!name.trim()) return;
+  fbUpdate(`sets/${muId}`,{name:name.trim()});
+}
+
+// ================================================================
+// メモ
+// ================================================================
+function editMemo(muId){
+  document.getElementById(`memoView_${muId}`).style.display='none';
+  document.getElementById(`memoEdit_${muId}`).style.display='block';
+  document.getElementById(`memoTxt_${muId}`).focus();
+}
+function cancelMemo(muId){
+  document.getElementById(`memoEdit_${muId}`).style.display='none';
+  document.getElementById(`memoView_${muId}`).style.display='block';
+}
+function saveMemo(muId){
+  const txt=document.getElementById(`memoTxt_${muId}`).value;
+  fbUpdate(`sets/${muId}`,{memo:txt});
+  toast('メモを保存しました');
+}
+
+// ================================================================
+// カード操作
+// ================================================================
+function openAddCard(muId){
+  addCardMuId=muId;
+  document.getElementById('cNameIn').value='';
+  document.getElementById('cCodeIn').value='';
+  document.getElementById('cReqIn').value='1';
+  document.getElementById('cStockIn').value='0';
+  document.getElementById('cardErr').style.display='none';
+  document.getElementById('addCardModal').classList.add('show');
+  setTimeout(()=>document.getElementById('cNameIn').focus(),100);
+}
+
+function saveCard(){
+  const name=document.getElementById('cNameIn').value.trim();
+  const code=document.getElementById('cCodeIn').value.trim();
+  const req=parseInt(document.getElementById('cReqIn').value)||1;
+  const stock=parseInt(document.getElementById('cStockIn').value)||0;
+  if(!name){document.getElementById('cardErr').textContent='カード名を入力';document.getElementById('cardErr').style.display='block';return;}
+  const id=genId('card');
+  fbSet(`sets/${addCardMuId}/cards/${id}`,{id,name,code,requiredQty:req,stock});
+  closeModal('addCardModal');
+  expandedMuId=addCardMuId;
+  toast('カードを追加しました');
+}
+
+function delCard(muId,cardId){
+  if(!confirm('このカードを削除しますか？')) return;
+  fbRemove(`sets/${muId}/cards/${cardId}`);
+  toast('削除しました');
+}
+
+// 在庫クイック編集
+let tempStock={};
+function startStockEdit(muId,cardId){
+  const card=(appData.sets[muId]?.cards||{})[cardId];
+  if(!card) return;
+  tempStock[`${muId}_${cardId}`]=card.stock;
+  editingCard={muId,cardId,mode:'stock'};
+  expandedMuId=muId;
+  renderRight();
+}
+function changeStock(muId,cardId,delta){
+  const key=`${muId}_${cardId}`;
+  tempStock[key]=Math.max(0,(tempStock[key]||0)+delta);
+  const el=document.getElementById(`sv_${key}`);
+  if(el) el.textContent=tempStock[key];
+}
+function saveStock(muId,cardId){
+  const key=`${muId}_${cardId}`;
+  const val=tempStock[key]??0;
+  fbUpdate(`sets/${muId}/cards/${cardId}`,{stock:val});
+  editingCard=null;
+  toast('在庫を更新しました');
+}
+
+// フル編集
+function startFullEdit(muId,cardId){
+  editingCard={muId,cardId,mode:'edit'};
+  expandedMuId=muId;
+  renderRight();
+}
+function saveFullEdit(muId,cardId){
+  const key=`${muId}_${cardId}`;
+  const name=document.getElementById(`en_${key}`)?.value.trim();
+  const code=document.getElementById(`ec_${key}`)?.value.trim()||'';
+  const req=parseInt(document.getElementById(`er_${key}`)?.value)||1;
+  const stock=parseInt(document.getElementById(`es_${key}`)?.value)||0;
+  if(!name){alert('カード名を入力してください');return;}
+  fbUpdate(`sets/${muId}/cards/${cardId}`,{name,code,requiredQty:req,stock});
+  editingCard=null;
+  toast('保存しました');
+}
+function cancelEdit(){
+  editingCard=null;
+  renderRight();
+}
+
+// ================================================================
+// 画像操作
+// ================================================================
+async function addListingImgs(event, muId){
+  const files=Array.from(event.target.files);
+  if(!files.length) return;
+  for(const file of files){
+    const data=await compressImage(file);
+    const id=genId('img');
+    await fbSet(`sets/${muId}/listingImages/${id}`,{id,data});
+  }
+  event.target.value='';
+  expandedMuId=muId;
+  toast('画像を追加しました');
+}
+function delListingImg(muId,imgId){
+  fbRemove(`sets/${muId}/listingImages/${imgId}`);
+}
+async function addCardImgs(event, muId, cardId){
+  const files=Array.from(event.target.files);
+  if(!files.length) return;
+  for(const file of files){
+    const data=await compressImage(file);
+    const id=genId('img');
+    await fbSet(`sets/${muId}/cards/${cardId}/images/${id}`,{id,data});
+  }
+  event.target.value='';
+  expandedMuId=muId;
+  toast('画像を追加しました');
+}
+function delCardImg(muId,cardId,imgId){
+  fbRemove(`sets/${muId}/cards/${cardId}/images/${imgId}`);
+}
+
+// ================================================================
+// 画像拡大
+// ================================================================
+function openImg(src){
+  document.getElementById('imgModalSrc').src=src;
+  document.getElementById('imgModal').classList.add('open');
+}
+function closeImgModal(){document.getElementById('imgModal').classList.remove('open')}
+
+// ================================================================
+// 在庫不足パネル
+// ================================================================
+function renderAlert(){
+  const allSets=Object.values(appData.sets);
+  const low=[];
+  allSets.forEach(mu=>{
+    Object.values(mu.cards||{}).forEach(card=>{
+      if(card.stock<=5) low.push({mu,card});
+    });
+  });
+
+  const ac=document.getElementById('alertContent');
+  if(low.length===0){
+    ac.innerHTML=`<div style="background:white;border-radius:10px;padding:32px;text-align:center;color:#a0aec0">
+      <div style="font-size:36px;margin-bottom:8px">✅</div>在庫不足のカードはありません
+    </div>`;
+    return;
+  }
+
+  // グループ化
+  const groups={};
+  low.forEach(({mu,card})=>{
+    const key=`${mu.tab}|${mu.item}`;
+    if(!groups[key]) groups[key]={label:mu.item,entries:[]};
+    groups[key].entries.push({mu,card});
+  });
+
+  let html=`<div style="font-size:12px;color:#718096;margin-bottom:10px">⚠️ 在庫<strong>5枚以下</strong>: <strong style="color:#e53e3e">${low.length}件</strong></div>`;
+  Object.values(groups).forEach(grp=>{
+    html+=`<div class="alert-group">
+      <div class="alert-group-hdr">🃏 ${esc(grp.label)}</div>`;
+    grp.entries.forEach(({mu,card})=>{
+      const cls=card.stock===0?'badge-out':'badge-low';
+      html+=`<div class="alert-row">
+        <div style="flex:1;min-width:0">
+          <div class="alert-card-name">${esc(card.name)}</div>
+          <div class="alert-mu-name">む: ${esc(mu.name)}</div>
+        </div>
+        <span class="mu-badge ${cls}">${card.stock}枚</span>
+        <button class="btn-sm bp" style="margin-left:8px" onclick="quickEdit('${mu.id}','${card.id}')">編集</button>
+      </div>`;
+    });
+    html+=`</div>`;
+  });
+  ac.innerHTML=html;
+}
+
+function quickEdit(muId,cardId){
+  const card=(appData.sets[muId]?.cards||{})[cardId];
+  if(!card) return;
+  const v=prompt(`「${card.name}」の在庫数:`,card.stock);
+  if(v===null) return;
+  const n=parseInt(v);
+  if(isNaN(n)||n<0){alert('正しい数字を入力してください');return;}
+  fbUpdate(`sets/${muId}/cards/${cardId}`,{stock:n});
+  toast('在庫を更新しました');
+}
+
+// ================================================================
+// タブ追加
+// ================================================================
+function openAddTabModal(){
+  document.getElementById('tabNameIn').value='';
+  document.getElementById('tabEmojiIn').value='';
+  document.getElementById('addTabModal').classList.add('show');
+  setTimeout(()=>document.getElementById('tabNameIn').focus(),100);
+}
+function saveTab(){
+  const name=document.getElementById('tabNameIn').value.trim();
+  const emoji=document.getElementById('tabEmojiIn').value.trim()||'📁';
+  if(!name){alert('タブ名を入力してください');return;}
+  const id=genId('tab');
+  fbSet(`tabs/${id}`,{id,name,emoji});
+  closeModal('addTabModal');
+  setTimeout(()=>switchTab(id),400);
+}
+
+// ================================================================
+// カスタムアイテム追加
+// ================================================================
+function openAddItemModal(tabId){
+  addItemTabId=tabId;
+  const tab=appData.tabs[tabId];
+  document.getElementById('addItemHdg').textContent=`${tab?tab.name:''}にアイテムを追加`;
+  document.getElementById('itemNameIn').value='';
+  document.getElementById('addItemModal').classList.add('show');
+  setTimeout(()=>document.getElementById('itemNameIn').focus(),100);
+}
+function saveItem(){
+  const name=document.getElementById('itemNameIn').value.trim();
+  if(!name){alert('名前を入力してください');return;}
+  const items=appData.tabItems[addItemTabId]||[];
+  if(items.includes(name)){alert('同じ名前がすでにあります');return;}
+  items.push(name);
+  fbSet(`tabItems/${addItemTabId}`,items);
+  closeModal('addItemModal');
+}
+
+// ================================================================
+// モーダル共通
+// ================================================================
+function closeModal(id){document.getElementById(id).classList.remove('show')}
+document.querySelectorAll('.overlay').forEach(el=>{
+  el.addEventListener('click',e=>{if(e.target===el) el.classList.remove('show')});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.overlay.show').forEach(m=>m.classList.remove('show'));
+    closeImgModal();
+  }
+});
+
+// ================================================================
+// トースト
+// ================================================================
+let toastTimer;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),2000);
+}
+
+// ================================================================
+// エスケープ
+// ================================================================
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+</script>
+</body>
+</html>
