@@ -283,7 +283,7 @@ input[type=range]{width:100%;margin-top:3px}
 
 <!-- ====== 設定 ====== -->
 <div id="cat-settings" class="cat-page">
-  <div class="hint-box">💡 変数：{ポケモン名} {英語名} {進化系} {タイプ} (ポケモン) ／ {名前} {英語名} {備考} (他カテゴリー)</div>
+  <div class="hint-box">💡 変数：{ポケモン名} {英語名} {英語名改行} {進化系} {進化系改行} {タイプ} (ポケモン) ／ {名前} {英語名} {備考} (他カテゴリー)<br><span style="font-size:10px">※ 改行付き変数は名前を1行ずつ改行して出力します</span></div>
   <div id="settingsContent"></div>
   <div id="catMgmt" style="margin-top:4px"></div>
   <div style="margin-top:14px">
@@ -483,8 +483,8 @@ const ILLUST_BUILTIN = [
 const DEFAULT_TPL = {
   pokemon: {
     '1000枚': {label:'1000枚出品',icon:'📦',color:'btn-1000',platform:'jp',
-      title:'ポケモンカード {ポケモン名} {英語名} 1000枚 まとめ売り 大量',
-      desc:`ポケモンカード {ポケモン名}（{英語名}）のカードを大量にまとめてお届けします。\n\n【収録ポケモン】\n{進化系}\n\n【商品説明】\n・コモン〜レアまで様々なカードが含まれます\n・まとめ売りのため状態は様々です\n・写真はイメージです\n\n【注意事項】\n・傷・折れ・汚れ等がある場合があります\n・返品・交換はご遠慮いただいております\n・ご不明な点はご購入前にお問い合わせください`},
+      title:'【約1000枚】ポケモンカード　{ポケモン名} 大量セットまとめ売り',
+      desc:`{進化系改行}\n{英語名改行}\n\n同系統のポケモンのみの約1000枚セットのまとめ売りになります。\n1枚あたり1.6gで計算しております。\n\n\n\n常連様、同時購入、まとめ買いの場合には\n特別な金額設定で提供させて頂きます（）\n購入後の同時購入も値下げの対象になります！\nお気軽にコメント下さい♪\n\n沢山のまとめ買いリクエストを頂いてます！\nまとめ買いリクエストの場合は常識の範囲内でしたらご希望の金額通りお応え致します♪\n\nコメントの返信につきましては\n出品量が多い為、全てに対応出来ない場合があります。\n\n発送方法は高額カードや高レアリティのカードに関しては\n普通郵便からメルカリ便に変更する場合がございます。\n\nページ説明\n・即購入OK\n・バラ売りNG\n\nなお中古品になりますので\n神経質な方はご遠慮下さい。\n\nIllustlator\nポケモンカード\nポケカ\nまとめ売り\n大量\nシャドーボックス\n無限回収\n引退品\nセット\nガチ構築\n構築済み\n本格構築\n旧裏\n旧カード\nxy\ndp\npt\n大会\nデッキ\nデッキパーツ\npokemon\npokemoncards\npokemoncardgame\nArtRareshiny\nVaporeonJolteonFlareonEspeon\nUmbreonLeafeonGlaceonSylveon\nEeveeSnorlaxAbraLaplaceDragoniteGabrielusRayquazaGarulaMimikyu\nCharizardGreninjaMimikyuLucarioUmbreon\nSylveonGarchompGardevoirGengarPikachu\n伊布月精仙子精NoctailNymphail\n\n種別複数カード\n#aa`},
     '単品': {label:'単品出品',icon:'🃏',color:'btn-single',platform:'jp',
       title:'ポケモンカード {ポケモン名} {英語名} 単品',
       desc:`ポケモンカード {ポケモン名}（{英語名}）の単品販売です。\n\n【商品詳細】\nポケモン名：{ポケモン名}\n英語名：{英語名}\nタイプ：{タイプ}\n\n【注意事項】\n・カードの状態は写真でご確認ください\n・返品・交換はご遠慮いただいております\n・ご不明な点はご購入前にお問い合わせください`},
@@ -666,7 +666,7 @@ function renderPkDetail(){
 
   if(pkActiveTpl && templates.pokemon[pkActiveTpl]){
     const t = templates.pokemon[pkActiveTpl];
-    const vars = {ポケモン名:p.name, 進化系:p.members.join('・'), 英語名:p.english.join('・'), タイプ:[p.type1,p.type2].filter(x=>x).join('・')};
+    const vars = {ポケモン名:p.name, 進化系:p.members.join('・'), 進化系改行:p.members.join('\n'), 英語名:p.english.join('・'), 英語名改行:p.english.join('\n'), タイプ:[p.type1,p.type2].filter(x=>x).join('・')};
     const title = fillTpl(t.title, vars), desc = fillTpl(t.desc, vars);
     h += renderTplOutput(title, desc);
   } else {
