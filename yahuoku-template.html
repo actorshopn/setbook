@@ -63,6 +63,17 @@ body{font-family:-apple-system,'Hiragino Sans','Meiryo',sans-serif;background:#f
 .toggle-arrow.open{transform:rotate(180deg)}
 .toggle-body{display:none}
 .toggle-body.open{display:block}
+
+/* 料金表 */
+.rate-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:10px;border-radius:8px;border:1.5px solid #e2e8f0}
+.rate-table{border-collapse:collapse;font-size:11px;min-width:600px;width:100%}
+.rate-table th{background:#2d3748;color:white;padding:6px 7px;text-align:center;font-weight:700;white-space:nowrap;border:1px solid #4a5568;line-height:1.3}
+.rate-table td{padding:6px 7px;text-align:right;border:1px solid #e2e8f0;white-space:nowrap}
+.rate-table tr:nth-child(even) td{background:#f7fafc}
+.rate-table tr.highlight-row td{background:#fff3cd !important;font-weight:700;color:#92400e}
+.rate-table td.size-cell{background:#edf2f7;font-weight:700;color:#2d3748;text-align:center}
+.rate-table tr.highlight-row td.size-cell{background:#e53e3e !important;color:white}
+.rate-note{font-size:10px;color:#718096;margin-top:6px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -135,7 +146,35 @@ body{font-family:-apple-system,'Hiragino Sans','Meiryo',sans-serif;background:#f
     </div>
   </div>
 
-  <!-- ④ HTML出力（折りたたみ） -->
+  <!-- ④ 佐川料金表 -->
+  <div class="card">
+    <div class="card-title">🚚 佐川飛脚便 料金表（税込）<span style="font-size:10px;font-weight:400;color:#a0aec0;margin-left:4px">※選択サイズをハイライト表示</span></div>
+    <div class="rate-wrap">
+      <table class="rate-table" id="rateTable">
+        <thead>
+          <tr>
+            <th>サイズ<br>(重量)</th>
+            <th>北海道</th>
+            <th>北東北<br>青森・秋田・岩手</th>
+            <th>南東北<br>宮城・山形・福島</th>
+            <th>関東<br>茨城〜神奈川・山梨</th>
+            <th>信越<br>長野・新潟</th>
+            <th>東海<br>静岡・愛知・岐阜・三重</th>
+            <th>北陸<br>富山・石川・福井</th>
+            <th>関西<br>京都〜兵庫・大阪</th>
+            <th>中国<br>岡山〜島根</th>
+            <th>四国<br>香川・徳島・愛媛・高知</th>
+            <th>北九州<br>福岡・佐賀・長崎</th>
+            <th>南九州<br>熊本・大分・宮崎・鹿児島</th>
+          </tr>
+        </thead>
+        <tbody id="rateBody"></tbody>
+      </table>
+    </div>
+    <div class="rate-note">※上記は佐川急便の通常配達料金です（税込）<br>※沖縄・離島は別途中継手数料が発生します</div>
+  </div>
+
+  <!-- ⑤ HTML出力（折りたたみ） -->
   <div class="card">
     <button class="toggle-btn" onclick="toggleHtml(this)">
       🔧 HTMLソース（上級者向け）
@@ -154,6 +193,60 @@ body{font-family:-apple-system,'Hiragino Sans','Meiryo',sans-serif;background:#f
 <div class="toast" id="toast"></div>
 
 <script>
+// ================================================================
+// 佐川料金データ (PDF実データ)
+// ================================================================
+const SAGAWA_RATES = [
+  { size:'60',  weight:'2kg',  rates:[1820,1300,1180,1040,1040,910,910,910,910,1040,1040,1040] },
+  { size:'80',  weight:'5kg',  rates:[2100,1590,1470,1340,1340,1220,1220,1220,1220,1340,1340,1340] },
+  { size:'100', weight:'10kg', rates:[2350,1880,1740,1630,1630,1520,1520,1520,1520,1630,1630,1630] },
+  { size:'140', weight:'20kg', rates:[3090,2570,2440,2310,2310,2180,2180,2180,2180,2310,2310,2310] },
+  { size:'160', weight:'30kg', rates:[3340,2830,2700,2570,2570,2440,2440,2440,2440,2570,2570,2570] },
+];
+
+function buildRateTable(){
+  const sel = document.getElementById('sizeInput')?.value.trim() || '';
+  const tbody = document.getElementById('rateBody');
+  if(!tbody) return;
+  tbody.innerHTML = SAGAWA_RATES.map(row=>{
+    const isHL = row.size === sel;
+    const cells = row.rates.map(r=>`<td>¥${r.toLocaleString()}</td>`).join('');
+    return `<tr${isHL?' class="highlight-row"':''}>
+      <td class="size-cell">${row.size}サイズ<br><span style="font-size:9px">(${row.weight})</span></td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+function buildRateTextTable(){
+  const regions = ['北海道','北東北','南東北','関東','信越','東海','北陸','関西','中国','四国','北九州','南九州'];
+  let t = '【佐川飛脚便 料金表（税込）】\n';
+  t += 'サイズ　　' + regions.map(r=>r.padEnd(5)).join(' ') + '\n';
+  SAGAWA_RATES.forEach(row=>{
+    const vals = row.rates.map(r=>String(r).padStart(5)).join(' ');
+    t += `${(row.size+'サイズ').padEnd(8)} ${vals}\n`;
+  });
+  t += '※沖縄・離島は別途中継手数料が発生します\n※上記は佐川急便の通常配達料金です';
+  return t;
+}
+
+function buildRateHtmlTable(){
+  const regions = ['北海道','北東北<br>青森・秋田・岩手','南東北<br>宮城・山形・福島','関東<br>茨城〜神奈川・山梨','信越<br>長野・新潟','東海<br>静岡・愛知・岐阜・三重','北陸<br>富山・石川・福井','関西<br>京都〜兵庫・大阪','中国<br>岡山〜島根','四国<br>香川・徳島・愛媛・高知','北九州<br>福岡・佐賀・長崎','南九州<br>熊本・大分・宮崎・鹿児島'];
+  const heads = ['<th>サイズ<br>(重量)</th>', ...regions.map(r=>`<th>${r}</th>`)].join('');
+  const rows = SAGAWA_RATES.map(row=>{
+    const cells = row.rates.map(r=>`<td style="text-align:right;padding:4px 6px;border:1px solid #ddd">¥${r.toLocaleString()}</td>`).join('');
+    return `<tr><td style="background:#eee;font-weight:bold;text-align:center;padding:4px 6px;border:1px solid #ddd">${row.size}サイズ(${row.weight})</td>${cells}</tr>`;
+  }).join('');
+  return `<p><b>【佐川飛脚便 料金表（税込）】</b></p>
+<div style="overflow-x:auto">
+<table style="border-collapse:collapse;font-size:11px;min-width:600px">
+<thead><tr style="background:#333;color:white">${heads}</tr></thead>
+<tbody>${rows}</tbody>
+</table>
+</div>
+<p style="font-size:11px;color:#666">※上記は佐川急便の通常配達料金です<br>※沖縄・離島は別途中継手数料が発生します</p>`;
+}
+
 let currentNum = '①';
 
 function selectNum(btn){
@@ -197,6 +290,8 @@ function buildDesc(v){
 
 発送詳細
 ■佐川飛脚便 ${v.size}サイズ以下の梱包サイズとなります。（追跡あり）
+
+${buildRateTextTable()}
 
 支払い方法
 ■Yahoo!かんたん決済
@@ -257,6 +352,8 @@ function buildHtml(v){
 <p><b>発送詳細</b><br>
 ■佐川飛脚便 ${escHtml(v.size)}サイズ以下の梱包サイズとなります。（追跡あり）</p>
 
+${buildRateHtmlTable()}
+
 <p><b>支払い方法</b><br>
 ■Yahoo!かんたん決済</p>
 
@@ -304,6 +401,7 @@ function update(){
   document.getElementById('titlePreview').textContent = buildTitle(v);
   document.getElementById('descPreview').textContent = buildDesc(v);
   document.getElementById('htmlOutput').value = buildHtml(v);
+  buildRateTable();
 }
 
 function copyTitle(btn){
