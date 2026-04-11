@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ヤフオク 出品テンプレート</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'Hiragino Sans','Meiryo',sans-serif;background:#f0f4f8;color:#2d3748;min-height:100vh}
+
+.header{background:linear-gradient(135deg,#c05621,#e53e3e);color:white;padding:12px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px}
+.header h1{font-size:16px;font-weight:700}
+.header-right{margin-left:auto;display:flex;gap:6px}
+.header-link{color:white;font-size:11px;opacity:.8;text-decoration:none;background:rgba(255,255,255,0.18);padding:5px 10px;border-radius:6px;white-space:nowrap}
+
+.container{padding:12px;max-width:680px;margin:0 auto}
+
+/* カード */
+.card{background:white;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.card-title{font-size:13px;font-weight:700;color:#718096;margin-bottom:12px;display:flex;align-items:center;gap:6px;border-bottom:2px solid #f0f4f8;padding-bottom:8px}
+
+/* フォーム */
+.form-row{margin-bottom:10px}
+.form-label{font-size:11px;font-weight:700;color:#4a5568;margin-bottom:4px;display:block}
+.form-input{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fafafa;transition:border-color .15s}
+.form-input:focus{border-color:#e53e3e;background:white}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:400px){.form-grid{grid-template-columns:1fr}}
+
+/* 番号選択ボタン */
+.num-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.num-btn{width:38px;height:38px;border-radius:8px;border:2px solid #e2e8f0;background:white;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:inherit}
+.num-btn.active{background:#e53e3e;border-color:#e53e3e;color:white}
+.num-btn:active{transform:scale(0.92)}
+
+/* タイトルプレビュー */
+.title-preview{background:#fff8f0;border:1.5px solid #fbd38d;border-radius:8px;padding:10px 12px;font-size:13px;font-weight:600;color:#c05621;line-height:1.5;word-break:break-all}
+.copy-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.copy-btn{padding:8px 18px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s}
+.copy-btn:active{transform:scale(0.96);opacity:.85}
+.copy-title{background:#c05621;color:white}
+.copy-desc{background:#2b6cb0;color:white;width:100%;justify-content:center;padding:12px}
+.copy-btn.copied{background:#38a169}
+
+/* 説明文プレビュー */
+.desc-preview{background:#f9fafb;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px;font-size:12px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:#2d3748;max-height:380px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.desc-preview::-webkit-scrollbar{width:4px}
+.desc-preview::-webkit-scrollbar-thumb{background:#cbd5e0;border-radius:2px}
+
+/* セクション区切り */
+.section-hdr{font-weight:700;color:#2d3748;margin:8px 0 4px}
+
+/* トースト */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(30,40,55,0.93);color:white;padding:9px 22px;border-radius:24px;font-size:13px;font-weight:600;z-index:400;pointer-events:none;opacity:0;transition:opacity .15s,transform .15s;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* タグバッジ */
+.tag{display:inline-block;background:#e2e8f0;color:#4a5568;font-size:10px;padding:2px 7px;border-radius:100px;margin:2px}
+
+/* 折りたたみ */
+.toggle-btn{width:100%;text-align:left;background:none;border:none;font-family:inherit;font-size:13px;font-weight:700;color:#4a5568;cursor:pointer;padding:4px 0;display:flex;align-items:center;gap:6px}
+.toggle-arrow{font-size:11px;color:#a0aec0;transition:transform .2s;margin-left:auto}
+.toggle-arrow.open{transform:rotate(180deg)}
+.toggle-body{display:none}
+.toggle-body.open{display:block}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title" style="font-size:16px;font-weight:700">🛒 ヤフオク出品テンプレート</div>
+    <div style="font-size:10px;opacity:.75">ポケモンカードまとめ売り</div>
+  </div>
+  <div class="header-right">
+    <a href="pokemon-template.html" class="header-link">🃏 出品テンプレ</a>
+    <a href="index.html" class="header-link">📚 セット本</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ① 入力フォーム -->
+  <div class="card">
+    <div class="card-title">✏️ 商品情報を入力</div>
+
+    <div class="form-row">
+      <label class="form-label">出品番号（①②③…）</label>
+      <div class="num-btns" id="numBtns">
+        <button class="num-btn active" data-val="①" onclick="selectNum(this)">①</button>
+        <button class="num-btn" data-val="②" onclick="selectNum(this)">②</button>
+        <button class="num-btn" data-val="③" onclick="selectNum(this)">③</button>
+        <button class="num-btn" data-val="④" onclick="selectNum(this)">④</button>
+        <button class="num-btn" data-val="⑤" onclick="selectNum(this)">⑤</button>
+        <button class="num-btn" data-val="⑥" onclick="selectNum(this)">⑥</button>
+        <button class="num-btn" data-val="⑦" onclick="selectNum(this)">⑦</button>
+        <button class="num-btn" data-val="⑧" onclick="selectNum(this)">⑧</button>
+        <button class="num-btn" data-val="⑨" onclick="selectNum(this)">⑨</button>
+        <button class="num-btn" data-val="⑩" onclick="selectNum(this)">⑩</button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-row">
+        <label class="form-label">重量（例：10kg / 5kg）</label>
+        <input class="form-input" id="weightInput" value="10kg" oninput="update()" placeholder="10kg"/>
+      </div>
+      <div class="form-row">
+        <label class="form-label">梱包サイズ（例：100）</label>
+        <input class="form-input" id="sizeInput" value="100" oninput="update()" placeholder="100"/>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label class="form-label">追加コメント（任意）<span style="font-size:10px;color:#a0aec0;font-weight:400"> ※商品内容の補足</span></label>
+      <input class="form-input" id="commentInput" placeholder="例：SAR多め、旧裏含む　など" oninput="update()"/>
+    </div>
+  </div>
+
+  <!-- ② タイトル -->
+  <div class="card">
+    <div class="card-title">📋 タイトル</div>
+    <div class="title-preview" id="titlePreview"></div>
+    <div class="copy-row">
+      <button class="copy-btn copy-title" onclick="copyTitle(this)">📋 タイトルをコピー</button>
+    </div>
+  </div>
+
+  <!-- ③ 説明文 -->
+  <div class="card">
+    <div class="card-title">📝 説明文（ヤフオクHTML用）</div>
+    <div class="desc-preview" id="descPreview"></div>
+    <div style="margin-top:10px">
+      <button class="copy-btn copy-desc" onclick="copyDesc(this)">📋 説明文をコピー（そのまま貼り付けOK）</button>
+    </div>
+  </div>
+
+  <!-- ④ HTML出力（折りたたみ） -->
+  <div class="card">
+    <button class="toggle-btn" onclick="toggleHtml(this)">
+      🔧 HTMLソース（上級者向け）
+      <span class="toggle-arrow">▼</span>
+    </button>
+    <div class="toggle-body" id="htmlBody">
+      <div style="margin-top:10px">
+        <textarea id="htmlOutput" style="width:100%;height:200px;font-size:11px;font-family:monospace;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px;resize:vertical;outline:none;line-height:1.6" readonly></textarea>
+        <button class="copy-btn" style="background:#553c9a;color:white;margin-top:6px" onclick="copyHtml(this)">📋 HTMLをコピー</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentNum = '①';
+
+function selectNum(btn){
+  document.querySelectorAll('.num-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  currentNum = btn.dataset.val;
+  update();
+}
+
+function getValues(){
+  return {
+    num: currentNum,
+    weight: document.getElementById('weightInput').value.trim() || '10kg',
+    size: document.getElementById('sizeInput').value.trim() || '100',
+    comment: document.getElementById('commentInput').value.trim(),
+  };
+}
+
+function buildTitle(v){
+  return `${v.num}ポケモンカード約${v.weight}まとめ売り 大量セット 業者引退品 卸 詰め合わせ ジャンク`;
+}
+
+function buildDesc(v){
+  const commentLine = v.comment ? `\n${v.comment}\n` : '';
+  return `出品物
+
+ご覧いただきありがとうございます！
+迅速な発送と丁寧な梱包を心掛けています。
+最後まで気持ちの良いお取引をさせていただきたいと思いますので、
+ご不明な点やご質問があればお気軽にお問い合わせください。
+
+【商品について】
+商品名：ポケモンカード ポケカ まとめ売り 約${v.weight}
+内容：${commentLine}
+画像をご確認の上、ご入札ください
+
+商品状態：
+中古品の為、傷、汚れ、折れなどがある場合がございます。
+神経質な方はご遠慮ください。
+状態には個人差がありますので、あくまでプレイ用でお考え下さい。
+
+発送詳細
+■佐川飛脚便 ${v.size}サイズ以下の梱包サイズとなります。（追跡あり）
+
+支払い方法
+■Yahoo!かんたん決済
+
+【商品説明】
+中古品の為、傷、汚れ、折れなどがある場合がございます。
+神経質な方はご遠慮ください。
+状態には個人差がありますので、あくまでプレイ用でお考え下さい。
+上記ご理解の上ご入札ください。
+※こちらの商品はジャンク品となります。
+
+中身違い、ダブり、破損、盤面の傷、説明書抜け、汚れ、落書き、付属品なし、劣化等、
+複数枚数の商品で枚数が足りない等の可能性がございます。
+上記の点を予めご了承の上ご入札をお願い致します。
+
+【注意事項】
+◆商品は画像に載っているものが全てとなります。
+◆ジャンク品の為、動作確認を行ってません。
+　不具合や欠品等が発生しても弊社での返金等は、
+　致しかねますので、ご理解頂ける方のみご入札下さい。
+◆複数落札での同梱は、致しておりませんので予めご了承下さい。
+◆土日祝日、年末年始、その他大型連休など、
+　お問合わせや発送業務を休止致しております。
+◆神経質な方や完璧な商品をお求めの方はご入札をお控えください。
+◆バラ売りは行っておりません。
+
+※佐川飛脚便は沖縄県、離島エリアへの発送は別途「中継手数料」が発生します。
+その場合「中継手数料」の発生しない「ゆうパック」に発送を変更させて頂きます。
+商品説明欄に記載の料金と差異が生じます。
+運送会社、配送方法の指定はお受けできません。ご了承ください。
+
+ご購入・ご入札いただき、誠にありがとうございます。
+ご不明な点やご質問がございましたら、
+お気軽に「質問する」からお問い合わせください。
+
+皆様とのお取引を大切にしています。
+よろしくお願いいたします！`;
+}
+
+function buildHtml(v){
+  const commentLine = v.comment ? `<br>${escHtml(v.comment)}<br>` : '';
+  return `<p>出品物</p>
+<p>ご覧いただきありがとうございます！<br>
+迅速な発送と丁寧な梱包を心掛けています。<br>
+最後まで気持ちの良いお取引をさせていただきたいと思いますので、<br>
+ご不明な点やご質問があればお気軽にお問い合わせください。</p>
+
+<p><b>【商品について】</b><br>
+商品名：ポケモンカード ポケカ まとめ売り 約${escHtml(v.weight)}<br>
+内容：${commentLine}
+画像をご確認の上、ご入札ください</p>
+
+<p>商品状態：<br>
+中古品の為、傷、汚れ、折れなどがある場合がございます。<br>
+神経質な方はご遠慮ください。<br>
+状態には個人差がありますので、あくまでプレイ用でお考え下さい。</p>
+
+<p><b>発送詳細</b><br>
+■佐川飛脚便 ${escHtml(v.size)}サイズ以下の梱包サイズとなります。（追跡あり）</p>
+
+<p><b>支払い方法</b><br>
+■Yahoo!かんたん決済</p>
+
+<p><b>【商品説明】</b><br>
+中古品の為、傷、汚れ、折れなどがある場合がございます。<br>
+神経質な方はご遠慮ください。<br>
+状態には個人差がありますので、あくまでプレイ用でお考え下さい。<br>
+上記ご理解の上ご入札ください。<br>
+※こちらの商品はジャンク品となります。</p>
+
+<p>中身違い、ダブり、破損、盤面の傷、説明書抜け、汚れ、落書き、付属品なし、劣化等、<br>
+複数枚数の商品で枚数が足りない等の可能性がございます。<br>
+上記の点を予めご了承の上ご入札をお願い致します。</p>
+
+<p><b>【注意事項】</b><br>
+◆商品は画像に載っているものが全てとなります。<br>
+◆ジャンク品の為、動作確認を行ってません。<br>
+　不具合や欠品等が発生しても弊社での返金等は、<br>
+　致しかねますので、ご理解頂ける方のみご入札下さい。<br>
+◆複数落札での同梱は、致しておりませんので予めご了承下さい。<br>
+◆土日祝日、年末年始、その他大型連休など、<br>
+　お問合わせや発送業務を休止致しております。<br>
+◆神経質な方や完璧な商品をお求めの方はご入札をお控えください。<br>
+◆バラ売りは行っておりません。</p>
+
+<p>※佐川飛脚便は沖縄県、離島エリアへの発送は別途「中継手数料」が発生します。<br>
+その場合「中継手数料」の発生しない「ゆうパック」に発送を変更させて頂きます。<br>
+商品説明欄に記載の料金と差異が生じます。<br>
+運送会社、配送方法の指定はお受けできません。ご了承ください。</p>
+
+<p>ご購入・ご入札いただき、誠にありがとうございます。<br>
+ご不明な点やご質問がございましたら、<br>
+お気軽に「質問する」からお問い合わせください。</p>
+
+<p>皆様とのお取引を大切にしています。<br>
+よろしくお願いいたします！</p>`;
+}
+
+function escHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function update(){
+  const v = getValues();
+  document.getElementById('titlePreview').textContent = buildTitle(v);
+  document.getElementById('descPreview').textContent = buildDesc(v);
+  document.getElementById('htmlOutput').value = buildHtml(v);
+}
+
+function copyTitle(btn){
+  const v = getValues();
+  navigator.clipboard.writeText(buildTitle(v)).then(()=>{
+    btn.textContent = '✅ コピーしました！';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 タイトルをコピー';btn.classList.remove('copied')},2000);
+    toast('タイトルをコピーしました');
+  });
+}
+
+function copyDesc(btn){
+  const v = getValues();
+  navigator.clipboard.writeText(buildDesc(v)).then(()=>{
+    btn.textContent = '✅ コピーしました！';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 説明文をコピー（そのまま貼り付けOK）';btn.classList.remove('copied')},2000);
+    toast('説明文をコピーしました');
+  });
+}
+
+function copyHtml(btn){
+  const html = document.getElementById('htmlOutput').value;
+  navigator.clipboard.writeText(html).then(()=>{
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(()=>{btn.textContent='📋 HTMLをコピー'},2000);
+    toast('HTMLをコピーしました');
+  });
+}
+
+function toggleHtml(btn){
+  const body = document.getElementById('htmlBody');
+  const arrow = btn.querySelector('.toggle-arrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 2000);
+}
+
+// 初期表示
+update();
+</script>
+</body>
+</html>
